@@ -175,7 +175,7 @@ class Uptown extends Table {
      clienttranslate("${player_name} plays ${tile_name}"), array(
      'i18n' => array ('tile_name'),
      'player_id' => $player_id,
-     'player_name' => $player_name,
+     'location' => $location,
      'tile_type' => $type
     ));
 

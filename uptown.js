@@ -56,6 +56,7 @@ function (dojo, declare) {
       console.log(gamedatas);
 
       this.myColor = this.colorsByHex[gamedatas.players[gamedatas.my_player_id].color];
+      this.myId = gamedatas.my_player_id;
 
       // Player hand
       this.playerHand = new ebg.stock();
@@ -83,15 +84,15 @@ function (dojo, declare) {
       }
 
       // Set up player areas
+      this.colorsByPlayerId = {}
       for(var player_id in gamedatas.players) {
         var player = gamedatas.players[player_id];
+        this.colorsByPlayerId[player_id] = this.colorsByHex[player.color];
       }
 
       // Current player's hand of tiles
-      console.log(gamedatas.hand);
       for (var deckid in gamedatas.hand) {
         var tile = gamedatas.hand[deckid];
-        console.log(tile);
         var typeid = tile.type_arg;
         var name = this.tiles[typeid];
         var stockid = this.getTileStockId(this.myColor, name);
@@ -104,7 +105,6 @@ function (dojo, declare) {
         var location = boardTile.location_arg;
         var color = this.colorsByHex[gamedatas.players[boardTile.type].color];
         var name = this.tiles[boardTile.type_arg];
-        console.log(color + ' ' + name + ' at ' + location);
 
         var stockid = this.getTileStockId(
          color, name);
@@ -113,6 +113,9 @@ function (dojo, declare) {
 
       // Set up onClick action for the board squares
       this.addEventToClass('square', 'onclick', 'onClickBoardSquare');
+
+      // Set up notification handlers
+      this.setupNotifications();
     },
        
 
@@ -204,9 +207,7 @@ function (dojo, declare) {
     // we need to display bare tiles
     tileStockIdToSpriteOffset: function(id) {
       var colorAndType = this.tileStockIdToColorAndType(id);
-      console.log('Tile stock ID ' + id + ' has color ' + colorAndType[0] + ' and type ' + colorAndType[1]);
       var ret = '-' + (colorAndType[1] * 100) + '% -' + (colorAndType[0] * 100) + '%';
-      console.log('Tile stock ID ' + id + ' has sprite offset ' + ret);
       return ret;
     },
 
@@ -224,7 +225,6 @@ function (dojo, declare) {
     },
 
     highlightPossibleMoves: function(stockid) {
-      console.log('Highlighting for tile ' + stockid);
       var colorAndType = this.tileStockIdToColorAndType(stockid);
       var type = colorAndType[1];
       var name = this.tiles[type];
@@ -296,25 +296,32 @@ function (dojo, declare) {
 
     setupNotifications: function() {
       console.log( 'notifications subscriptions setup' );
-//      dojo.subscribe('tileDrew', this, "notif_tileDrew");
+      dojo.subscribe('tileDrew', this, "notif_tileDrew");
       dojo.subscribe('playTile', this, "notif_playTile");
     },
 
     // We just drew a new tile
     notif_tileDrew: function(notif) {
+      console.log("notif_tileDrew");
+      console.log(notif);
       var tile = notif.args.tile;
       var typeid = this.tiles[tile.type_arg];
-      var stockid = this.getTileStockId(this.myColor, typeid);
+      var name = this.tiles[typeid];
+      var stockid = this.getTileStockId(this.myColor, name);
       var deckid = notif.args.id;
       this.playerHand.addToStockWithId(stockid, deckid);
     },
 
     // Someone just played a tile
     notif_playTile: function(notif) {
-      console.log('notif_playTile');
-      console.log(notif);
-      var typeid = notif.args.type;
-      var stockid = this.getTileStockId(notif.args.color, typeid);
+      if (notif.args.player_id == this.myId) {
+        // If this is our own play, we already updated the board
+        return;
+      }
+      var typeid = notif.args.tile_type;
+      var color = this.colorsByPlayerId[notif.args.player_id];
+      var name = this.tiles[typeid];
+      var stockid = this.getTileStockId(color, name);
       this.setBoardSquareTile(stockid, $('square_' + notif.args.location));
     }
 
