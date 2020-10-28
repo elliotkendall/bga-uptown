@@ -1,257 +1,322 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * Uptown implementation : © <Your name here> <Your email address here>
+ * Uptown implementation : © Elliot Kendall <elliotkendall@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
  * -----
- *
- * uptown.js
- *
- * Uptown user interface script
- * 
- * In this file, you are describing the logic of your user interface, in Javascript language.
- *
  */
 
 define([
-    "dojo","dojo/_base/declare",
-    "ebg/core/gamegui",
-    "ebg/counter"
+  "dojo","dojo/_base/declare",
+  "ebg/core/gamegui",
+  "ebg/counter",
+  "ebg/stock"
 ],
 function (dojo, declare) {
-    return declare("bgagame.uptown", ebg.core.gamegui, {
-        constructor: function(){
-            console.log('uptown constructor');
-              
-            // Here, you can init the global variables of your user interface
-            // Example:
-            // this.myGlobalValue = 0;
+  return declare("bgagame.uptown", ebg.core.gamegui, {
+    constructor: function() {
+      this.playerHand = null;
+      this.tilewidth = 50;
+      this.tileheight = 50;
 
-        },
-        
-        /*
-            setup:
-            
-            This method must set up the game user interface according to current game situation specified
-            in parameters.
-            
-            The method is called each time the game interface is displayed to a player, ie:
-            _ when the game starts
-            _ when a player refreshes the game page (F5)
-            
-            "gamedatas" argument contains all datas retrieved by your "getAllDatas" PHP method.
-        */
-        
-        setup: function( gamedatas )
-        {
-            console.log( "Starting game setup" );
-            
-            // Setting up player boards
-            for( var player_id in gamedatas.players )
-            {
-                var player = gamedatas.players[player_id];
-                         
-                // TODO: Setting up players boards if needed
-            }
-            
-            // TODO: Set up your game interface here, according to "gamedatas"
-            
- 
-            // Setup game notifications to handle (see "setupNotifications" method below)
-            this.setupNotifications();
+      this.colors = ['blue', 'green', 'orange', 'red', 'yellow'];
+      this.colorsByHex = {
+        "c5f0f9": "blue",
+        "c8e6c8": "green",
+        "f28c60": "orange",
+        "f03f84": "red",
+        "ffff8b": "yellow"
+      };
+      this.tiles = [
+       '1', '2', '3', '4', '5', '6', '7', '8', '9',
+       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+       'guy', 'ring', 'lady', 'lamp', 'city', 'sax', 'car', 'cards', 'wine',
+       '$'
+      ];
 
-            console.log( "Ending game setup" );
-        },
+    },
+    /*
+      setup:
+            
+      This method must set up the game user interface according to current
+      game situation specified in parameters.
+            
+      The method is called each time the game interface is displayed to a
+      player, ie:
+        _ when the game starts
+        _ when a player refreshes the game page (F5)
+            
+      "gamedatas" argument contains all datas retrieved by your
+      "getAllDatas" PHP method.
+    */
+        
+    setup: function(gamedatas) {
+      console.log(gamedatas);
+
+      this.myColor = this.colorsByHex[gamedatas.players[gamedatas.my_player_id].color];
+
+      // Player hand
+      this.playerHand = new ebg.stock();
+      this.playerHand.create(this, $('player_hand_self'),
+       this.tilewidth, this.tileheight);
+      dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
+
+      // Only one item can be selected at a time
+      this.playerHand.setSelectionMode(1);
+
+      // tiles per row in the sprite image
+      this.playerHand.image_items_per_row = this.tiles.length;
+
+      // Create tile types
+      for(var i=0;i<this.colors.length;i++) {
+        var color=this.colors[i];
+        for(var j=0;j<this.tiles.length;j++) {
+          var tileName = this.tiles[j];
+          // Build tile type id
+          var stockid = this.getTileStockId(color, tileName);
+//          console.log(color + ' ' + tileName + ' is ' + stockid);
+          this.playerHand.addItemType(stockid, stockid,
+           g_gamethemeurl + 'img/tiles.png', stockid);
+        }
+      }
+
+      // Set up player areas
+      for(var player_id in gamedatas.players) {
+        var player = gamedatas.players[player_id];
+      }
+
+      // Current player's hand of tiles
+      console.log(gamedatas.hand);
+      for (var deckid in gamedatas.hand) {
+        var tile = gamedatas.hand[deckid];
+        console.log(tile);
+        var typeid = tile.type_arg;
+        var name = this.tiles[typeid];
+        var stockid = this.getTileStockId(this.myColor, name);
+        this.playerHand.addToStockWithId(stockid, deckid);
+      }
+
+      // Fill in board squares
+      for (var deckid in gamedatas.board) {
+        var boardTile = gamedatas.board[deckid];
+        var location = boardTile.location_arg;
+        var color = this.colorsByHex[gamedatas.players[boardTile.type].color];
+        var name = this.tiles[boardTile.type_arg];
+        console.log(color + ' ' + name + ' at ' + location);
+
+        var stockid = this.getTileStockId(
+         color, name);
+        this.setBoardSquareTile(stockid, $('square_' + location));
+      }
+
+      // Set up onClick action for the board squares
+      this.addEventToClass('square', 'onclick', 'onClickBoardSquare');
+    },
        
 
-        ///////////////////////////////////////////////////
-        //// Game & client states
-        
-        // onEnteringState: this method is called each time we are entering into a new game state.
-        //                  You can use this method to perform some user interface changes at this moment.
-        //
-        onEnteringState: function( stateName, args )
-        {
-            console.log( 'Entering state: '+stateName );
-            
-            switch( stateName )
-            {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Show some HTML block at this game state
-                dojo.style( 'my_html_block_id', 'display', 'block' );
-                
-                break;
-           */
-           
-           
-            case 'dummmy':
-                break;
-            }
-        },
+    ///////////////////////////////////////////////////
+    //// Game & client states
+    //
+    // onEnteringState: this method is called each time we are entering into
+    // a new game state.
+    //
+    //  You can use this method to perform some user interface changes at
+    //  this moment.
+    //
+    onEnteringState: function(stateName, args) {
+      console.log('Entering state: ' + stateName);
 
-        // onLeavingState: this method is called each time we are leaving a game state.
-        //                 You can use this method to perform some user interface changes at this moment.
-        //
-        onLeavingState: function( stateName )
-        {
-            console.log( 'Leaving state: '+stateName );
-            
-            switch( stateName )
-            {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Hide the HTML block we are displaying only during this game state
-                dojo.style( 'my_html_block_id', 'display', 'none' );
-                
-                break;
-           */
-           
-           
-            case 'dummmy':
-                break;
-            }               
-        }, 
-
-        // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
-        //                        action status bar (ie: the HTML links in the status bar).
-        //        
-        onUpdateActionButtons: function( stateName, args )
-        {
-            console.log( 'onUpdateActionButtons: '+stateName );
-                      
-            if( this.isCurrentPlayerActive() )
-            {            
-                switch( stateName )
-                {
-/*               
-                 Example:
- 
-                 case 'myGameState':
-                    
-                    // Add 3 action buttons in the action status bar:
-                    
-                    this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
-                    this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
-                    this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
-                    break;
-*/
-                }
-            }
-        },        
-
-        ///////////////////////////////////////////////////
-        //// Utility methods
-        
-        /*
-        
-            Here, you can defines some utility methods that you can use everywhere in your javascript
-            script.
-        
-        */
-
-
-        ///////////////////////////////////////////////////
-        //// Player's action
-        
-        /*
-        
-            Here, you are defining methods to handle player's action (ex: results of mouse click on 
-            game objects).
-            
-            Most of the time, these methods:
-            _ check the action is possible at this game state.
-            _ make a call to the game server
-        
-        */
-        
+      switch(stateName) {
         /* Example:
-        
-        onMyMethodToCall1: function( evt )
-        {
-            console.log( 'onMyMethodToCall1' );
-            
-            // Preventing default browser reaction
-            dojo.stopEvent( evt );
-
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if( ! this.checkAction( 'myAction' ) )
-            {   return; }
-
-            this.ajaxcall( "/uptown/uptown/myAction.html", { 
-                                                                    lock: true, 
-                                                                    myArgument1: arg1, 
-                                                                    myArgument2: arg2,
-                                                                    ...
-                                                                 }, 
-                         this, function( result ) {
-                            
-                            // What to do after the server call if it succeeded
-                            // (most of the time: nothing)
-                            
-                         }, function( is_error) {
-
-                            // What to do after the server call in anyway (success or failure)
-                            // (most of the time: nothing)
-
-                         } );        
-        },        
-        
+        case 'myGameState':
+          // Show some HTML block at this game state
+          dojo.style( 'my_html_block_id', 'display', 'block' );
+          break;
         */
+        case 'dummy':
+        break;
+      }
+    },
 
-        
-        ///////////////////////////////////////////////////
-        //// Reaction to cometD notifications
+    // onLeavingState: this method is called each time we are leaving a game
+    // state.
+    //
+    // You can use this method to perform some user interface changes at
+    // this moment.
+    //
+    onLeavingState: function(stateName) {
+      console.log( 'Leaving state: '+stateName );
 
-        /*
-            setupNotifications:
-            
-            In this method, you associate each of your game notifications with your local method to handle it.
-            
-            Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
-                  your uptown.game.php file.
+      switch(stateName) {
+        /* Example:
+        case 'myGameState':
+          // Hide the HTML block we are displaying only during this game state
+          dojo.style( 'my_html_block_id', 'display', 'none' );
+          break;
+         */
+        case 'dummy':
+        break;
+      }
+    }, 
+
+    // onUpdateActionButtons: in this method you can manage "action buttons"
+    // that are displayed in the action status bar (ie: the HTML links in
+    // the status bar).
+    //        
+    onUpdateActionButtons: function(stateName, args) {
+      console.log('onUpdateActionButtons: ' + stateName);
+      if (this.isCurrentPlayerActive()) {
+        switch(stateName) {
+          /* Example:
+          case 'myGameState':
+            // Add 3 action buttons in the action status bar:
+            this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
+            this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
+            this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
+          break;
+          */
+        }
+      }
+    },
+
+    ///////////////////////////////////////////////////
+    //// Utility methods
+
+    /*
+    Here you can defines some utility methods that you can use everywhere in
+    your javascript script.
+    */
+
+    // Get tile stock identifier based on its color and name
+    getTileStockId: function(color, name) {
+      return (this.colors.indexOf(color) * this.tiles.length)
+       + this.tiles.indexOf(name);
+    },
+
+    // Reverse of above
+    tileStockIdToColorAndType: function(id) {
+      return [Math.floor(id / this.tiles.length), (id % this.tiles.length)];
+    },
+
+    // Stock does this calculation for us when we can use it, but sometimes
+    // we need to display bare tiles
+    tileStockIdToSpriteOffset: function(id) {
+      var colorAndType = this.tileStockIdToColorAndType(id);
+      console.log('Tile stock ID ' + id + ' has color ' + colorAndType[0] + ' and type ' + colorAndType[1]);
+      var ret = '-' + (colorAndType[1] * 100) + '% -' + (colorAndType[0] * 100) + '%';
+      console.log('Tile stock ID ' + id + ' has sprite offset ' + ret);
+      return ret;
+    },
+
+    // Place a tile onto a square of the board
+    setBoardSquareTile: function(stockid, square) {
+      dojo.addClass(square, 'type_' + stockid);
+      dojo.style(square, 'background-position',
+       this.tileStockIdToSpriteOffset(stockid));
+      dojo.style(square, 'background-image',
+       'url(' + g_gamethemeurl + 'img/tiles.png)');
+    },
+
+    clearHighlightedSquares: function() {
+      dojo.query('.possibleMove').removeClass('possibleMove');
+    },
+
+    highlightPossibleMoves: function(stockid) {
+      console.log('Highlighting for tile ' + stockid);
+      var colorAndType = this.tileStockIdToColorAndType(stockid);
+      var type = colorAndType[1];
+      var name = this.tiles[type];
+      if (name == '$') {
+        dojo.query('.square').addClass('possibleMove');
+      } else {
+        dojo.query('.kind_' + name).addClass('possibleMove');
+      }
+    },
+
+    ///////////////////////////////////////////////////
+    //// Player's action
         
-        */
-        setupNotifications: function()
-        {
-            console.log( 'notifications subscriptions setup' );
+    /*
+    Here, you are defining methods to handle player's action (ex: results of
+    mouse click on game objects).
             
-            // TODO: here, associate your game notifications with local methods
-            
-            // Example 1: standard notification handling
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            
-            // Example 2: standard notification handling + tell the user interface to wait
-            //            during 3 seconds after calling the method in order to let the players
-            //            see what is happening in the game.
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
-            // 
-        },  
+    Most of the time, these methods:
+      _ check the action is possible at this game state.
+      _ make a call to the game server
         
-        // TODO: from this point and below, you can write your game notifications handling methods
-        
-        /*
-        Example:
-        
-        notif_cardPlayed: function( notif )
-        {
-            console.log( 'notif_cardPlayed' );
-            console.log( notif );
+    */
+    onClickBoardSquare: function(evt) {
+      dojo.stopEvent(evt);
+      var action = 'playTile';
+      var selected = this.playerHand.getSelectedItems();
+      
+      if (selected.length == 0 // No tile selected, so can't play one
+       || ! this.checkAction(action, true) // Not your turn
+       || ! dojo.hasClass(evt.target, 'possibleMove')) { // The square clicked isn't a valid placement of this tile
+        return;
+      }
+      var stockid = selected[0].type;
+      var deckid = selected[0].id;
+
+      this.playerHand.removeFromStock(stockid, evt.target);
+      this.setBoardSquareTile(stockid, evt.target);
+      this.clearHighlightedSquares();
+      var location = evt.target.id.split('_', 2)[1];
+      this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", {
+       tile:deckid,
+       location:location
+      }, this, function(result) {});
+    },
+
+    // When the player selects a tile, highlight where it can go
+    onPlayerHandSelectionChanged: function() {
+      var selected = this.playerHand.getSelectedItems();
+
+      if (selected.length == 0) {
+        this.clearHighlightedSquares();
+      } else {
+        var stockid = selected[0].type;
+        this.highlightPossibleMoves(stockid);
+      }
+    },
+
+    ///////////////////////////////////////////////////
+    //// Reaction to cometD notifications
+    /*
+    setupNotifications:
             
-            // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
+    In this method, you associate each of your game notifications with your
+    local method to handle it.
             
-            // TODO: play the card in the user interface.
-        },    
-        
-        */
-   });             
+    Note: game notification names correspond to "notifyAllPlayers" and
+    "notifyPlayer" calls in your uptown.game.php file.
+    */
+
+    setupNotifications: function() {
+      console.log( 'notifications subscriptions setup' );
+//      dojo.subscribe('tileDrew', this, "notif_tileDrew");
+      dojo.subscribe('playTile', this, "notif_playTile");
+    },
+
+    // We just drew a new tile
+    notif_tileDrew: function(notif) {
+      var tile = notif.args.tile;
+      var typeid = this.tiles[tile.type_arg];
+      var stockid = this.getTileStockId(this.myColor, typeid);
+      var deckid = notif.args.id;
+      this.playerHand.addToStockWithId(stockid, deckid);
+    },
+
+    // Someone just played a tile
+    notif_playTile: function(notif) {
+      console.log('notif_playTile');
+      console.log(notif);
+      var typeid = notif.args.type;
+      var stockid = this.getTileStockId(notif.args.color, typeid);
+      this.setBoardSquareTile(stockid, $('square_' + notif.args.location));
+    }
+
+  });             
 });

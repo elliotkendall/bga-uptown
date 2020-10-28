@@ -2,26 +2,10 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * Uptown implementation : © <Your name here> <Your email address here>
+ * Uptown implementation : © Elliot Kendall <elliotkendall@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
- * -----
- *
- * uptown.view.php
- *
- * This is your "view" file.
- *
- * The method "build_page" below is called each time the game interface is displayed to a player, ie:
- * _ when the game starts
- * _ when a player refreshes the game page (F5)
- *
- * "build_page" method allows you to dynamically modify the HTML generated for the game interface. In
- * particular, you can set here the values of variables elements defined in uptown_uptown.tpl (elements
- * like {MY_VARIABLE_ELEMENT}), and insert HTML block elements (also defined in your HTML template file)
- *
- * Note: if the HTML of your game interface is always the same, you don't have to place anything here.
- *
  */
   
   require_once( APP_BASE_PATH."view/common/game.view.php" );
@@ -31,52 +15,70 @@
     function getGameName() {
         return "uptown";
     }    
+    static function getSymbol($y, $x) {
+      if ($x < 3) {
+        if ($y < 3) {
+          return 'guy';
+        } else if ($y < 6) {
+          return 'ring';
+        } else {
+          return 'lady';
+        }
+      } else if ($x < 6) {
+        if ($y < 3) {
+          return 'lamp';
+        } else if ($y < 6) {
+          return 'city';
+        } else {
+          return 'sax';
+        }
+      } else {
+        if ($y < 3) {
+          return 'car';
+        } else if ($y < 6) {
+          return 'cards';
+        } else {
+          return 'wine';
+        }
+      }
+    }
   	function build_page( $viewArgs )
   	{		
-  	    // Get players & players number
+        global $g_user;
         $players = $this->game->loadPlayersBasicInfos();
-        $players_nbr = count( $players );
+        $template = self::getGameName() . "_" . self::getGameName();
 
-        /*********** Place your code below:  ************/
-
-
-        /*
-        
-        // Examples: set the value of some element defined in your tpl file like this: {MY_VARIABLE_ELEMENT}
-
-        // Display a specific number / string
-        $this->tpl['MY_VARIABLE_ELEMENT'] = $number_to_display;
-
-        // Display a string to be translated in all languages: 
-        $this->tpl['MY_VARIABLE_ELEMENT'] = self::_("A string to be translated");
-
-        // Display some HTML content of your own:
-        $this->tpl['MY_VARIABLE_ELEMENT'] = self::raw( $some_html_code );
-        
-        */
-        
-        /*
-        
-        // Example: display a specific HTML block for each player in this game.
-        // (note: the block is defined in your .tpl file like this:
-        //      <!-- BEGIN myblock --> 
-        //          ... my HTML code ...
-        //      <!-- END myblock --> 
-        
-
-        $this->page->begin_block( "uptown_uptown", "myblock" );
-        foreach( $players as $player )
-        {
-            $this->page->insert_block( "myblock", array( 
-                                                    "PLAYER_NAME" => $player['player_name'],
-                                                    "SOME_VARIABLE" => $some_value
-                                                    ...
-                                                     ) );
+        // this will inflate our player block with actual players data
+        $this->page->begin_block($template, "player_area");
+        foreach ($players as $player_id => $info) {
+          if ($player_id == $g_user->get_id()) {
+            continue;
+          }
+          $this->page->insert_block("player_area", array(
+            "PLAYER_ID" => $player_id,
+            "PLAYER_NAME" => $players[$player_id]['player_name'],
+            "PLAYER_COLOR" => $players[$player_id]['player_color']));
         }
-        
-        */
 
+        // fill the board with squares
+        $this->page->begin_block($template, "square");
+        $hor_scale = 52.5;
+        $ver_scale = 52.5;
+        for($x=0; $x<9; $x++) {
+          for($y=0; $y<9; $y++) {
+            $this->page->insert_block( "square", array(
+             'ID' => $x + (9 * $y),
+             'NUMBER' => $x+1,
+             'LETTER' => chr($y+65),
+             'SYMBOL' => self::getSymbol($x, $y),
+             'LEFT' => round( ($x)*$hor_scale+100 ),
+             'TOP' => round( ($y)*$ver_scale+100 )
+            ));
+          }        
+        }
 
+        // this will make our My Hand text translatable
+        $this->tpl['MY_TILES'] = self::_("My tiles");
 
         /*********** Do not change anything below this line  ************/
   	}

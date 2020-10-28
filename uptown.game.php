@@ -2,7 +2,7 @@
  /**
   *------
   * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-  * Uptown implementation : © <Your name here> <Your email address here>
+  * Uptown implementation : © Elliot Kendall <elliotkendall@gmail.com>
   * 
   * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
   * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -15,111 +15,111 @@
   * In this PHP file, you are going to defines the rules of the game.
   *
   */
-
-
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
+class Uptown extends Table {
+  function __construct() {
+    parent::__construct();
+    // This is evidently necessary even if we're not using any globals
+    self::initGameStateLabels(array());        
 
-class Uptown extends Table
-{
-	function __construct( )
-	{
-        // Your global variables labels:
-        //  Here, you can assign labels to global variables you are using for this game.
-        //  You can use any number of global variables with IDs between 10 and 99.
-        //  If your game has options (variants), you also have to associate here a label to
-        //  the corresponding ID in gameoptions.inc.php.
-        // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
-        parent::__construct();
-        
-        self::initGameStateLabels( array( 
-            //    "my_first_global_variable" => 10,
-            //    "my_second_global_variable" => 11,
-            //      ...
-            //    "my_first_game_variant" => 100,
-            //    "my_second_game_variant" => 101,
-            //      ...
-        ) );        
-	}
+    $this->tiles = self::getNew("module.common.deck");
+    $this->tiles->init("tile");
+  }
 	
-    protected function getGameName( )
-    {
-		// Used for translations and stuff. Please do not modify.
-        return "uptown";
-    }	
+  protected function getGameName() {
+    // Used for translations and stuff. Please do not modify.
+    return "uptown";
+  }	
 
-    /*
-        setupNewGame:
-        
-        This method is called only once, when a new game is launched.
-        In this method, you must setup the game according to the game rules, so that
-        the game is ready to be played.
-    */
-    protected function setupNewGame( $players, $options = array() )
-    {    
-        // Set the colors of the players with HTML color code
-        // The default below is red/green/blue/orange/brown
-        // The number of colors defined here must correspond to the maximum number of players allowed for the gams
-        $gameinfos = self::getGameinfos();
-        $default_colors = $gameinfos['player_colors'];
+  /*
+  setupNewGame:
+
+  This method is called only once, when a new game is launched. In this
+  method, you must setup the game according to the game rules, so that the
+  game is ready to be played.
+  */
+  protected function setupNewGame($players, $options = array()) {    
+    // Set the colors of the players with HTML color code
+    // The default below is red/green/blue/orange/brown
+    // The number of colors defined here must correspond to the maximum number of players allowed for the gams
+    $gameinfos = self::getGameinfos();
+    $default_colors = $gameinfos['player_colors'];
  
-        // Create players
-        // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
-        $values = array();
-        foreach( $players as $player_id => $player )
-        {
-            $color = array_shift( $default_colors );
-            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
-        }
-        $sql .= implode( $values, ',' );
-        self::DbQuery( $sql );
-        self::reattributeColorsBasedOnPreferences( $players, $gameinfos['player_colors'] );
-        self::reloadPlayersBasicInfos();
+    // Create players
+    // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
+    $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
+    $values = array();
+    foreach($players as $player_id => $player) {
+      $color = array_shift($default_colors);
+      $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes($player['player_name'])."','".addslashes($player['player_avatar'])."')";
+    }
+    $sql .= implode($values, ',');
+    self::DbQuery($sql);
+    self::reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
+    self::reloadPlayersBasicInfos();
         
-        /************ Start the game initialization *****/
+    /************ Start the game initialization *****/
+    // Init game statistics
+    // (note: statistics used in this file must be defined in your stats.inc.php file)
+    //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
+    //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
-        // Init global values with their initial values
-        //self::setGameStateInitialValue( 'my_first_global_variable', 0 );
-        
-        // Init game statistics
-        // (note: statistics used in this file must be defined in your stats.inc.php file)
-        //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
-        //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
+    foreach($players as $player_id => $player) {
+      $tiles = array();
+      foreach ($this->tile_values as $type => $name) {
+        $tiles[] = array(
+         'type' => $player_id,
+         'type_arg' => $type,
+         'nbr' => 1);
+      }
+      // Create a deck for this player
+      $this->tiles->createCards($tiles, 'deck_' . $player_id);
+      $this->tiles->shuffle('deck_' . $player_id);
 
-        // TODO: setup the initial game situation here
-       
-
-        // Activate first player (which is in general a good idea :) )
-        $this->activeNextPlayer();
-
-        /************ End of the game initialization *****/
+      // Draw a hand of tiles
+      $this->tiles->pickCards(5, 'deck_' . $player_id, $player_id);
     }
 
-    /*
-        getAllDatas: 
+    // Activate first player (which is in general a good idea :) )
+    $this->activeNextPlayer();
+
+    /************ End of the game initialization *****/
+  }
+
+  /*
+  getAllDatas: 
         
-        Gather all informations about current game situation (visible by the current player).
+  Gather all informations about current game situation (visible by the
+  current player).
         
-        The method is called each time the game interface is displayed to a player, ie:
-        _ when the game starts
-        _ when a player refreshes the game page (F5)
-    */
-    protected function getAllDatas()
-    {
-        $result = array();
+  The method is called each time the game interface is displayed to a
+  player, ie:
+    _ when the game starts
+    _ when a player refreshes the game page (F5)
+  */
+  protected function getAllDatas() {
+    $result = array();
+
+    // !! We must only return informations visible by this player !!
+    $current_player_id = self::getCurrentPlayerId();
+    $result['my_player_id'] = $current_player_id;
     
-        $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
-    
-        // Get information about players
-        // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score FROM player ";
-        $result['players'] = self::getCollectionFromDb( $sql );
-  
-        // TODO: Gather all information about current game situation (visible by player $current_player_id).
-  
-        return $result;
-    }
+    // Get information about players
+    // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
+    $sql = "SELECT player_id id, player_score score FROM player ";
+
+    $result['players'] = self::getCollectionFromDb($sql);
+
+    $result['hand'] = $this->tiles->getCardsInLocation('hand', $current_player_id);
+
+    $result['captured'] = $this->tiles->getCardsInLocation('captured');
+
+    $result['board'] = $this->tiles->getCardsInLocation('board');
+
+    // TODO: Gather all information about current game situation (visible by player $current_player_id).
+    return $result;
+  }
 
     /*
         getGameProgression:
@@ -158,31 +158,38 @@ class Uptown extends Table
         (note: each method below must match an input method in uptown.action.php)
     */
 
-    /*
-    
-    Example:
+  function playTile($deckid, $location) {
+    // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
+    self::checkAction('playTile');
 
-    function playCard( $card_id )
-    {
-        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
-        self::checkAction( 'playCard' ); 
+    $player_id = self::getActivePlayerId();
         
-        $player_id = self::getActivePlayerId();
-        
-        // Add your game logic to play a card there 
-        ...
-        
-        // Notify all players about the card played
-        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'card_name' => $card_name,
-            'card_id' => $card_id
-        ) );
-          
+    // Put the tile on the board
+    $this->tiles->moveCard($deckid, 'board', $location);
+            
+    // Notify all players about the tile played
+    $player_name = self::getActivePlayerName();
+    $type = $this->tiles->getCard($deckid)['type_arg'];
+    $tile_name = $this->tile_values[$type];
+    self::notifyAllPlayers('playTile',
+     clienttranslate("${player_name} plays ${tile_name}"), array(
+     'i18n' => array ('tile_name'),
+     'player_id' => $player_id,
+     'player_name' => $player_name,
+     'tile_type' => $type
+    ));
+
+    // Draw a new tile to replace it
+    $newTile = $this->tiles->pickCard('deck_' . $player_id, $player_id);
+    if ($newTile !== NULL) {
+      // Notify the player who drew it
+      $type = $newTile['type_arg'];
+      self::notifyPlayer($player_id, 'drawTile', '',
+       array ('tile' => $type ));
     }
     
-    */
+    $this->gamestate->nextState('playTile');
+  }
 
     
 //////////////////////////////////////////////////////////////////////////////
@@ -216,23 +223,17 @@ class Uptown extends Table
 //////////// Game state actions
 ////////////
 
-    /*
-        Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
-        The action method of state X is called everytime the current game state is set to X.
-    */
-    
-    /*
-    
-    Example for game state "MyGameState":
+  /*
+  Here, you can create methods defined as "game state actions" (see "action"
+  property in states.inc.php).  The action method of state X is called
+  everytime the current game state is set to X.
+  */
 
-    function stMyGameState()
-    {
-        // Do some stuff ...
-        
-        // (very often) go to another gamestate
-        $this->gamestate->nextState( 'some_gamestate_transition' );
-    }    
-    */
+  function stNextPlayer() {
+    $player_id = self::activeNextPlayer();
+    self::giveExtraTime($player_id);
+    $this->gamestate->nextState('nextPlayer');
+  }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Zombie

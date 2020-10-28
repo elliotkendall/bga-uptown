@@ -3,31 +3,39 @@
 <!-- 
 --------
 -- BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
--- Uptown implementation : © <Your name here> <Your email address here>
+-- Uptown implementation : © Elliot Kendall <elliotkendall@gmail.com>
 -- 
 -- This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 -- See http://en.boardgamearena.com/#!doc/Studio for more information.
 -------
-
-    uptown_uptown.tpl
-    
-    This is the HTML template of your game.
-    
-    Everything you are writing in this file will be displayed in the HTML page of your game user interface,
-    in the "main game zone" of the screen.
-    
-    You can use in this template:
-    _ variables, with the format {MY_VARIABLE_ELEMENT}.
-    _ HTML block, with the BEGIN/END format
-    
-    See your "view" PHP file to check how to set variables and control blocks
-    
-    Please REMOVE this comment before publishing your game on BGA
 -->
 
+<div id="board">
+  <!-- BEGIN square -->
+  <div id="square_{ID}"
+   class="square kind_{NUMBER} kind_{LETTER} kind_{SYMBOL}"
+   style="left: {LEFT}px; top: {TOP}px;"></div>
+  <!-- END square -->
+</div>
 
-This is your game interface. You can edit this HTML in your ".tpl" file.
+<div id="mytiles_wrap" class="whiteblock">
+  <h3>{MY_TILES}</h3>
+  <div class="player_hand" id="player_hand_self">
+  </div>
+  <div class="player_captured" id="player_captured_self"></div>
+  <div class="player_draw_pile" id="player_draw_pile_self"></div>
+</div> <!-- id="mytiles_wrap" -->
 
+<div id="player_areas">
+  <!-- BEGIN player_area -->
+  <div class="player_area whiteblock">
+    <div class="player_name" style="color:#{PLAYER_COLOR}">{PLAYER_NAME}</div>
+    <div class="player_hand" id="player_hand_{PLAYER_ID}"></div>
+    <div class="player_captured" id="player_captured_{PLAYER_ID}"></div>
+    <div class="player_draw_pile" id="player_draw_pile_{PLAYER_ID}"></div>
+  </div> <!-- class="player_area whiteblock" -->
+  <!-- END player_area -->
+</div> <!-- id="player_areas" -->
 
 <script type="text/javascript">
 
@@ -40,5 +48,6 @@ var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_I
 */
 
 </script>  
+
 
 {OVERALL_GAME_FOOTER}

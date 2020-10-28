@@ -2,7 +2,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * Uptown implementation : © <Your name here> <Your email address here>
+ * Uptown implementation : © Elliot Kendall <elliotkendall@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on https://boardgamearena.com.
  * See http://en.doc.boardgamearena.com/Studio for more information.
@@ -21,27 +21,25 @@
  *
  */
   
-  
-  class action_uptown extends APP_GameAction
-  { 
-    // Constructor: please do not modify
-   	public function __default()
-  	{
-  	    if( self::isArg( 'notifwindow') )
-  	    {
-            $this->view = "common_notifwindow";
-  	        $this->viewArgs['table'] = self::getArg( "table", AT_posint, true );
-  	    }
-  	    else
-  	    {
-            $this->view = "uptown_uptown";
-            self::trace( "Complete reinitialization of board game" );
-      }
-  	} 
-  	
-  	// TODO: defines your action entry points there
+class action_uptown extends APP_GameAction { 
+  // Constructor: please do not modify
+  public function __default() {
+    if (self::isArg( 'notifwindow')) {
+      $this->view = "common_notifwindow";
+      $this->viewArgs['table'] = self::getArg("table", AT_posint, true);
+    } else {
+      $this->view = "uptown_uptown";
+      self::trace( "Complete reinitialization of board game" );
+    }
+  } 
 
-
+  public function playTile() {
+    self::setAjaxMode();
+    $tile_id = self::getArg("tile", AT_posint, true);
+    $location = self::getArg("location", AT_posint, true);
+    $this->game->playTile($tile_id, $location);
+    self::ajaxResponse();
+  }
     /*
     
     Example:
