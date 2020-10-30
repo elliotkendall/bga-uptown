@@ -87,7 +87,7 @@ function (dojo, declare) {
           // Don't allow selection
           hand.setSelectionMode(0);
           hand.image_items_per_row = 1;
-          var id = this.colors.indexOf(this.colorsByHex[player.color])
+          var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
           hand.addItemType(id, id,
            g_gamethemeurl + 'img/colors.png', id);
           for(var i=0;i<player.handcount;i++) {
@@ -288,17 +288,18 @@ function (dojo, declare) {
        || ! dojo.hasClass(evt.target, 'possibleMove')) { // The square clicked isn't a valid placement of this tile
         return;
       }
-      var stockid = selected[0].type;
-      var deckid = selected[0].id;
 
-      this.playerHand.removeFromStock(stockid, evt.target);
-      this.setBoardSquareTile(stockid, evt.target);
-      this.clearHighlightedSquares();
+      // Don't actually move anything around. We'll wait for the
+      // notification from the server to do that
+
+      var deckid = selected[0].id;
       var location = evt.target.id.split('_', 2)[1];
       this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", {
        tile:deckid,
        location:location
       }, this, function(result) {});
+
+
     },
 
     // When the player selects a tile, highlight where it can go
@@ -344,15 +345,18 @@ function (dojo, declare) {
 
     // Someone just played a tile
     notif_playTile: function(notif) {
-      if (notif.args.player_id == this.myId) {
-        // If this is our own play, we already updated the board
-        return;
-      }
       var typeid = notif.args.tile_type;
       var color = this.colorsByPlayerId[notif.args.player_id];
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(color, name);
-      this.setBoardSquareTile(stockid, $('square_' + notif.args.location));
+      var location = $('square_' + notif.args.location);
+      if (notif.args.player_id == this.myId) {
+        this.playerHand.removeFromStock(stockid, location);
+      } else {
+        var id = this.colors.indexOf(this.colorsByPlayerId[notif.args.player_id])
+        this.hands[notif.args.player_id].removeFromStock(id, location);
+      }
+      this.setBoardSquareTile(stockid, location);
     }
 
   });             
