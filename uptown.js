@@ -70,6 +70,39 @@ function (dojo, declare) {
       // tiles per row in the sprite image
       this.playerHand.image_items_per_row = this.tiles.length;
 
+      // Set up player areas
+      this.colorsByPlayerId = {};
+      this.captureAreas = {};
+      this.hands = {};
+      for(var player_id in gamedatas.players) {
+        var player = gamedatas.players[player_id];
+        this.colorsByPlayerId[player_id] = this.colorsByHex[player.color];
+        var ca = new ebg.stock();
+        if (player_id == this.myId) {
+          var target = $('player_captured_self');
+        } else {
+          var target = $('player_captured_' + player_id);
+          var hand = new ebg.stock();
+          hand.create(this, $('player_hand_' + player_id), this.tilewidth, this.tileheight);
+          // Don't allow selection
+          hand.setSelectionMode(0);
+          hand.image_items_per_row = 1;
+          var id = this.colors.indexOf(this.colorsByHex[player.color])
+          hand.addItemType(id, id,
+           g_gamethemeurl + 'img/colors.png', id);
+          for(var i=0;i<player.handcount;i++) {
+            hand.addToStock(id);
+          }
+          this.hands[player_id] = hand;
+        }
+        ca.create(this, target, this.tilewidth, this.tileheight);
+        // Don't allow selection
+        ca.setSelectionMode(0);
+        // tiles per row in the sprite image
+        ca.image_items_per_row = this.tiles.length;
+        this.captureAreas[player_id] = ca;
+      }
+
       // Create tile types
       for(var i=0;i<this.colors.length;i++) {
         var color=this.colors[i];
@@ -80,15 +113,13 @@ function (dojo, declare) {
 //          console.log(color + ' ' + tileName + ' is ' + stockid);
           this.playerHand.addItemType(stockid, stockid,
            g_gamethemeurl + 'img/tiles.png', stockid);
+          for(var player_id in gamedatas.players) {
+            this.captureAreas[player_id].addItemType(stockid, stockid,
+             g_gamethemeurl + 'img/tiles.png', stockid);
+          }
         }
       }
 
-      // Set up player areas
-      this.colorsByPlayerId = {}
-      for(var player_id in gamedatas.players) {
-        var player = gamedatas.players[player_id];
-        this.colorsByPlayerId[player_id] = this.colorsByHex[player.color];
-      }
 
       // Current player's hand of tiles
       for (var deckid in gamedatas.hand) {
@@ -296,16 +327,15 @@ function (dojo, declare) {
 
     setupNotifications: function() {
       console.log( 'notifications subscriptions setup' );
-      dojo.subscribe('tileDrew', this, "notif_tileDrew");
+      dojo.subscribe('drawTile', this, "notif_drawTile");
       dojo.subscribe('playTile', this, "notif_playTile");
     },
 
     // We just drew a new tile
-    notif_tileDrew: function(notif) {
-      console.log("notif_tileDrew");
+    notif_drawTile: function(notif) {
+      console.log("notif_drawTile");
       console.log(notif);
-      var tile = notif.args.tile;
-      var typeid = this.tiles[tile.type_arg];
+      var typeid = notif.args.tile;
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(this.myColor, name);
       var deckid = notif.args.id;

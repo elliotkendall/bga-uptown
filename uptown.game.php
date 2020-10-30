@@ -109,11 +109,16 @@ class Uptown extends Table {
     // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
     $sql = "SELECT player_id id, player_score score FROM player ";
 
-    $result['players'] = self::getCollectionFromDb($sql);
+    $result['players'] = array();
+    foreach(self::getCollectionFromDb($sql) as $player_id => $info) {
+      $result['players'][$player_id] = $info;
+      $result['players'][$player_id]['captured'] =
+       $this->tiles->getCardsInLocation('captured', $player_id);
+      $result['players'][$player_id]['handcount'] =
+       count($this->tiles->getCardsInLocation('hand', $current_player_id));
+    }
 
     $result['hand'] = $this->tiles->getCardsInLocation('hand', $current_player_id);
-
-    $result['captured'] = $this->tiles->getCardsInLocation('captured');
 
     $result['board'] = $this->tiles->getCardsInLocation('board');
 
@@ -185,7 +190,10 @@ class Uptown extends Table {
       // Notify the player who drew it
       $type = $newTile['type_arg'];
       self::notifyPlayer($player_id, 'drawTile', '',
-       array ('tile' => $type ));
+       array (
+        'tile' => $type,
+        'id' => $newTile['id']
+       ));
     }
     
     $this->gamestate->nextState('playTile');
