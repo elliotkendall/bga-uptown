@@ -122,7 +122,6 @@ class Uptown extends Table {
 
     $result['board'] = $this->tiles->getCardsInLocation('board');
 
-    // TODO: Gather all information about current game situation (visible by player $current_player_id).
     return $result;
   }
 
@@ -168,6 +167,20 @@ class Uptown extends Table {
     self::checkAction('playTile');
 
     $player_id = self::getActivePlayerId();
+
+    $existing = $this->tiles->getCardsInLocation('board', $location);
+
+    $captured = FALSE;
+    $captured_tile = NULL;
+    $capture_target = NULL;
+    foreach ($existing as $id => $tile) {
+      $this->tiles->moveCard($id, 'captured', $player_id);
+      $capture_target = $tile['type'];
+      $captured_tile = $tile['type_arg'];
+      $captured = TRUE;
+      // There should only ever be one tile in a location
+      break;
+    }
         
     // Put the tile on the board
     $this->tiles->moveCard($deckid, 'board', $location);
@@ -176,13 +189,23 @@ class Uptown extends Table {
     $player_name = self::getActivePlayerName();
     $type = $this->tiles->getCard($deckid)['type_arg'];
     $tile_name = $this->tile_values[$type];
-    self::notifyAllPlayers('playTile',
-     clienttranslate("${player_name} plays ${tile_name}"), array(
+
+    $message = "${player_name} plays ${tile_name}";
+    $ret = array(
      'i18n' => array ('tile_name'),
      'player_id' => $player_id,
      'location' => $location,
      'tile_type' => $type
-    ));
+    );
+    if ($captured) {
+      $players = self::loadPlayersBasicInfos();
+      $capture_target_name = $players[$capture_target]['player_name'];
+      $captured_tile_name = $this->tile_values[$captured_tile];
+      $message .= ", capturing ${capture_target_name}'s ${captured_tile_name}";
+      $ret['i18n'][] = 'captured_tile_name';
+    }
+
+    self::notifyAllPlayers('playTile', clienttranslate($message), $ret);
 
     // Draw a new tile to replace it
     $newTile = $this->tiles->pickCard('deck_' . $player_id, $player_id);

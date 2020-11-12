@@ -87,6 +87,7 @@ function (dojo, declare) {
           // Don't allow selection
           hand.setSelectionMode(0);
           hand.image_items_per_row = 1;
+          ca.setSelectionMode(0);
           var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
           hand.addItemType(id, id,
            g_gamethemeurl + 'img/colors.png', id);
@@ -110,9 +111,10 @@ function (dojo, declare) {
           var tileName = this.tiles[j];
           // Build tile type id
           var stockid = this.getTileStockId(color, tileName);
-//          console.log(color + ' ' + tileName + ' is ' + stockid);
+          // Add it to our hand
           this.playerHand.addItemType(stockid, stockid,
            g_gamethemeurl + 'img/tiles.png', stockid);
+          // Add it to capture areas
           for(var player_id in gamedatas.players) {
             this.captureAreas[player_id].addItemType(stockid, stockid,
              g_gamethemeurl + 'img/tiles.png', stockid);
@@ -120,8 +122,19 @@ function (dojo, declare) {
         }
       }
 
+      // Populate captured tiles
+      for(var player_id in gamedatas.players) {
+        var player = gamedatas.players[player_id];
+        for(deckid in player.captured) {
+          var tile = player.captured[deckid];
+          var name = this.tiles[tile.type_arg];
+          var color = this.colorsByPlayerId[tile.type];
+          var stockid = this.getTileStockId(color, name);
+          this.captureAreas[player_id].addToStockWithId(stockid, deckid);
+        }
+      }
 
-      // Current player's hand of tiles
+      // Populate current player's hand of tiles
       for (var deckid in gamedatas.hand) {
         var tile = gamedatas.hand[deckid];
         var typeid = tile.type_arg;
@@ -350,6 +363,17 @@ function (dojo, declare) {
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(color, name);
       var location = $('square_' + notif.args.location);
+
+      var typeclass = Array.from(location.classList)
+       .find(function(i){return i.startsWith('type_')});
+      if (typeclass) {
+        // There was already a tile here, so treat this as a capture
+        var captured_stockid = typeclass.split('_', 2)[1];
+        // Clear the existing tile
+        dojo.removeClass(location, typeclass);
+        // Add it to the correct player's capture area
+        this.captureAreas[notif.args.player_id].addToStock(captured_stockid, location);
+      }
       if (notif.args.player_id == this.myId) {
         this.playerHand.removeFromStock(stockid, location);
       } else {
