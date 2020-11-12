@@ -167,6 +167,7 @@ class Uptown extends Table {
     self::checkAction('playTile');
 
     $player_id = self::getActivePlayerId();
+    $players = self::loadPlayersBasicInfos();
 
     $existing = $this->tiles->getCardsInLocation('board', $location);
 
@@ -198,7 +199,6 @@ class Uptown extends Table {
      'tile_type' => $type
     );
     if ($captured) {
-      $players = self::loadPlayersBasicInfos();
       $capture_target_name = $players[$capture_target]['player_name'];
       $captured_tile_name = $this->tile_values[$captured_tile];
       $message .= ", capturing ${capture_target_name}'s ${captured_tile_name}";
@@ -215,8 +215,16 @@ class Uptown extends Table {
       self::notifyPlayer($player_id, 'drawTile', '',
        array (
         'tile' => $type,
-        'id' => $newTile['id']
-       ));
+        'id' => $newTile['id']));
+      // Notify everyone else
+      foreach (array_keys($players) as $thispid) {
+        if ($thispid == $player_id) {
+          continue;
+        }
+        self::notifyPlayer($thispid, 'drawTileOther', '',
+         array (
+          'who' => $player_id));
+      }
     }
     
     $this->gamestate->nextState('playTile');

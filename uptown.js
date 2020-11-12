@@ -342,6 +342,7 @@ function (dojo, declare) {
     setupNotifications: function() {
       console.log( 'notifications subscriptions setup' );
       dojo.subscribe('drawTile', this, "notif_drawTile");
+      dojo.subscribe('drawTileOther', this, "notif_drawTileOther");
       dojo.subscribe('playTile', this, "notif_playTile");
     },
 
@@ -354,6 +355,15 @@ function (dojo, declare) {
       var stockid = this.getTileStockId(this.myColor, name);
       var deckid = notif.args.id;
       this.playerHand.addToStockWithId(stockid, deckid);
+    },
+
+    // Someone else just drew a new tile
+    notif_drawTileOther: function(notif) {
+      console.log("notif_drawTileOther");
+      console.log(notif);
+      var player_id = notif.args.who;
+      var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
+      this.hands[player_id].addToStock(id);
     },
 
     // Someone just played a tile
