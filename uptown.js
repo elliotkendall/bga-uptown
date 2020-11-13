@@ -72,11 +72,13 @@ function (dojo, declare) {
 
       // Set up player areas
       this.colorsByPlayerId = {};
+      this.playerIdsByColor = {};
       this.captureAreas = {};
       this.hands = {};
       for(var player_id in gamedatas.players) {
         var player = gamedatas.players[player_id];
         this.colorsByPlayerId[player_id] = this.colorsByHex[player.color];
+        this.playerIdsByColor[this.colorsByHex[player.color]] = player_id;
         var ca = new ebg.stock();
         if (player_id == this.myId) {
           var target = $('player_captured_self');
@@ -154,6 +156,11 @@ function (dojo, declare) {
          color, name);
         this.setBoardSquareTile(stockid, $('square_' + location));
       }
+
+      // Find existing tile groups
+      this.groups = this.findGroups(this);
+      console.log("Tile groups:");
+      console.log(this.groups);
 
       // Set up onClick action for the board squares
       this.addEventToClass('square', 'onclick', 'onClickBoardSquare');
@@ -236,6 +243,7 @@ function (dojo, declare) {
     your javascript script.
     */
 
+
     // Get tile stock identifier based on its color and name
     getTileStockId: function(color, name) {
       return (this.colors.indexOf(color) * this.tiles.length)
@@ -277,6 +285,68 @@ function (dojo, declare) {
       } else {
         dojo.query('.kind_' + name).addClass('possibleMove');
       }
+    },
+
+    // For some reason, "this" in this function gets bound to the wrong
+    // object and we can't e.g.  call other local functions.  So as a
+    // workaround we pass in "this" from the calling context
+    findGroups: function(context) {
+      // Create an empty board object
+      var board = [];
+      for (var square=0;square<82;square++) {
+        board[square] = null;
+      }
+
+      // Extract tile info from the board DOM
+      dojo.query("div.square[class*=\"type_\"]").forEach(function(node) {
+        var location = node.id.split('_', 2)[1]; // square_xx
+        var typeclass = Array.from(node.classList)
+         .find(function(i){return i.startsWith('type_')});
+        var stockid = typeclass.split('_', 2)[1]; // type_xx
+        var colorAndType = context.tileStockIdToColorAndType(stockid);
+        var player_id = context.playerIdsByColor[context.colors[colorAndType[0]]];
+        board[location] = player_id;
+      });
+
+      // Look through the board in order
+      var groups = {};
+      for (var square=0;square<82;square++) {
+        if (board[square] == null) {
+          // Empty square
+          continue;
+        }
+        var player = board[square];
+        if (! (player in groups)) {
+          groups[player] = [];
+        }
+
+        // Is the square above and/or to the left part of an existing group?
+        // Because of the order we're looping through the board we only
+        // need to worry about those two directions
+        var adjgroups = [];
+        for (var gid=0;gid<groups[player].length;gid++) {
+          // square % 9 != 0 means we don't wrap from the first column
+          // of one row back to the last column of the previous one
+          if ((square % 9 != 0 && groups[player][gid].includes(square-1))
+           || groups[player][gid].includes(square-9)) {
+            adjgroups.push(gid);
+          }
+        }
+        if (adjgroups.length == 0) {
+          // No adjacent groups, so start a new one
+          groups[player].push([square]);
+        } else if (adjgroups.length == 1) {
+          // Join that group
+          groups[player][adjgroups[0]].push(square);
+        } else {
+          // Combine groups and join the result
+          groups[player][adjgroups[0]] = groups[player][adjgroups[0]].concat([square], groups[player][adjgroups[1]]);
+          // Remove the combined group
+          groups[player] = groups[player].splice(adjgroups[1]-1, 1);
+          console.log(groups[player]);
+        }
+      }
+      return groups;
     },
 
     ///////////////////////////////////////////////////
@@ -369,28 +439,45 @@ function (dojo, declare) {
     // Someone just played a tile
     notif_playTile: function(notif) {
       var typeid = notif.args.tile_type;
-      var color = this.colorsByPlayerId[notif.args.player_id];
+      var player_id = notif.args.player_id;
+      var color = this.colorsByPlayerId[player_id];
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(color, name);
-      var location = $('square_' + notif.args.location);
+      var location = notif.args.location;
+      var locationDOM = $('square_' + location);
 
-      var typeclass = Array.from(location.classList)
+      var typeclass = Array.from(locationDOM.classList)
        .find(function(i){return i.startsWith('type_')});
       if (typeclass) {
         // There was already a tile here, so treat this as a capture
         var captured_stockid = typeclass.split('_', 2)[1];
         // Clear the existing tile
-        dojo.removeClass(location, typeclass);
+        dojo.removeClass(locationDOM, typeclass);
         // Add it to the correct player's capture area
-        this.captureAreas[notif.args.player_id].addToStock(captured_stockid, location);
+        this.captureAreas[player_id].addToStock(captured_stockid, locationDOM);
+        // If it was part of an existing group, remove it
+        var colorAndType = this.tileStockIdToColorAndType(captured_stockid);
+        var color = this.colors[colorAndType[0]];
+        var captured_player_id = this.playerIdsByColor[color];
+        var arrayIndex = this.groups[captured_player_id].indexOf(location);
+        if (arrayIndex !== -1) {
+          this.groups[captured_player_id] = this.groups[captured_player_id].splice(arrayIndex, 1);
+        }
       }
-      if (notif.args.player_id == this.myId) {
-        this.playerHand.removeFromStock(stockid, location);
+      if (player_id == this.myId) {
+        this.playerHand.removeFromStock(stockid, locationDOM);
       } else {
-        var id = this.colors.indexOf(this.colorsByPlayerId[notif.args.player_id])
-        this.hands[notif.args.player_id].removeFromStock(id, location);
+        var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
+        this.hands[player_id].removeFromStock(id, locationDOM);
       }
-      this.setBoardSquareTile(stockid, location);
+      this.setBoardSquareTile(stockid, locationDOM);
+
+      // Recalculate adjacent groups. We could do this more efficiently, but
+      // client CPU is cheap and it would be hard to do in a way that
+      // doesn't make a bunch of semi-redundant code
+      this.groups = this.findGroups(this);
+      console.log("Tile groups:");
+      console.log(this.groups);
     }
 
   });             
