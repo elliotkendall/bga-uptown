@@ -389,7 +389,7 @@ function (dojo, declare) {
     onPlayerHandSelectionChanged: function() {
       var selected = this.playerHand.getSelectedItems();
 
-      if (selected.length == 0) {
+      if (selected.length != 1) {
         this.clearHighlightedSquares();
       } else {
         var stockid = selected[0].type;
@@ -465,6 +465,7 @@ function (dojo, declare) {
         }
       }
       if (player_id == this.myId) {
+        this.clearHighlightedSquares();
         this.playerHand.removeFromStock(stockid, locationDOM);
       } else {
         var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
