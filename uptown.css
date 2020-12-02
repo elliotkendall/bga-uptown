@@ -49,24 +49,6 @@
 /********* You can start writing your CSS below this line: **********/
 
 
-/*
-    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
-
-    .white_token {
-        background-image: url('img/tokens.png');
-        background-position: 0px 0px;
-    }
-    .black_token {
-        background-image: url('img/tokens.png');
-        background-position: -20px 0px;
-    }
-    .token {
-        width: 20px;
-        height: 20px;
-        background-repeat: none;
-    }
-*/
-
 #board {
    width: 670px;
    height: 671px;
@@ -81,4 +63,20 @@
 
 #board .possibleMove {
   border: thin red solid;
+}
+
+.uptown_captureicon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    position: relative;
+    background-repeat: no-repeat;
+    background-image: url( 'img/captureicons.png');
+    background-position: 0px 0px;
+    margin-top: 4px;
+    margin-right: 3px;
+}
+
+.cp_board {
+    clear: both;
 }

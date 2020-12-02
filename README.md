@@ -16,3 +16,14 @@ $).  Used in the javascript Stock component.  Also used (confusingly) in the
 with unpredictable value.
 
 * Name: the text name of a tile, e.g. "A", "4", "lamp". 
+
+The Deck object:
+
+type: the ID number of the player whose color the tile is
+type_arg: a TypeID, as above
+location: 'hand', 'captured', 'board', or 'deck_<playerid>'
+location_arg:
+  for 'hand': the ID of the player's hand
+  for 'captured': the ID of the player who captured it
+  for 'board': the number of the square where the tile is
+  for 'deck_<playerid>': the tile's location in the deck (unused by our code)

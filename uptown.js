@@ -104,6 +104,11 @@ function (dojo, declare) {
         // tiles per row in the sprite image
         ca.image_items_per_row = this.tiles.length;
         this.captureAreas[player_id] = ca;
+
+        // Capture count in the player panel
+        var player_board_div = $('player_board_'+player_id);
+        player.capturecount = Object.keys(player.captured).length;
+        dojo.place( this.format_block('jstpl_player_board', player ), player_board_div);
       }
 
       // Create tile types
@@ -156,11 +161,6 @@ function (dojo, declare) {
          color, name);
         this.setBoardSquareTile(stockid, $('square_' + location));
       }
-
-      // Find existing tile groups
-      this.groups = this.findGroups(this);
-      console.log("Tile groups:");
-      console.log(this.groups);
 
       // Set up onClick action for the board squares
       this.addEventToClass('square', 'onclick', 'onClickBoardSquare');
@@ -243,6 +243,12 @@ function (dojo, declare) {
     your javascript script.
     */
 
+
+    // Like scoreCtrl for the captured tiles count in the player 
+    incrementCaptureCount: function(player_id) {
+      var span = dojo.query("#capturecount_p" + player_id);
+      span.text(parseInt(span.text()) + 1);
+    },
 
     // Get tile stock identifier based on its color and name
     getTileStockId: function(color, name) {
@@ -429,8 +435,6 @@ function (dojo, declare) {
 
     // Someone else just drew a new tile
     notif_drawTileOther: function(notif) {
-      console.log("notif_drawTileOther");
-      console.log(notif);
       var player_id = notif.args.who;
       var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
       this.hands[player_id].addToStock(id);
@@ -438,6 +442,8 @@ function (dojo, declare) {
 
     // Someone just played a tile
     notif_playTile: function(notif) {
+      console.log("notif_playTile");
+      console.log(notif);
       var typeid = notif.args.tile_type;
       var player_id = notif.args.player_id;
       var color = this.colorsByPlayerId[player_id];
@@ -455,14 +461,8 @@ function (dojo, declare) {
         dojo.removeClass(locationDOM, typeclass);
         // Add it to the correct player's capture area
         this.captureAreas[player_id].addToStock(captured_stockid, locationDOM);
-        // If it was part of an existing group, remove it
-        var colorAndType = this.tileStockIdToColorAndType(captured_stockid);
-        var color = this.colors[colorAndType[0]];
-        var captured_player_id = this.playerIdsByColor[color];
-        var arrayIndex = this.groups[captured_player_id].indexOf(location);
-        if (arrayIndex !== -1) {
-          this.groups[captured_player_id] = this.groups[captured_player_id].splice(arrayIndex, 1);
-        }
+        // Update the player's capture count in the panel
+        this.incrementCaptureCount(player_id);
       }
       if (player_id == this.myId) {
         this.clearHighlightedSquares();
@@ -473,12 +473,10 @@ function (dojo, declare) {
       }
       this.setBoardSquareTile(stockid, locationDOM);
 
-      // Recalculate adjacent groups. We could do this more efficiently, but
-      // client CPU is cheap and it would be hard to do in a way that
-      // doesn't make a bunch of semi-redundant code
-      this.groups = this.findGroups(this);
-      console.log("Tile groups:");
-      console.log(this.groups);
+      // Update player scores
+      for (var gpid in notif.args.groups) {
+        this.scoreCtrl[gpid].setValue(-1 * notif.args.groups[gpid].length);
+      }
     }
 
   });             

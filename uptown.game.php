@@ -39,7 +39,7 @@ class Uptown extends Table {
   method, you must setup the game according to the game rules, so that the
   game is ready to be played.
   */
-  protected function setupNewGame($players, $options = array()) {    
+  protected function setupNewGame($players, $options = array()) {
     // Set the colors of the players with HTML color code
     // The default below is red/green/blue/orange/brown
     // The number of colors defined here must correspond to the maximum number of players allowed for the gams
@@ -116,11 +116,15 @@ class Uptown extends Table {
        $this->tiles->getCardsInLocation('captured', $player_id);
       $result['players'][$player_id]['handcount'] =
        count($this->tiles->getCardsInLocation('hand', $current_player_id));
+      $result['players'][$player_id]['deckcount'] =
+       count($this->tiles->getCardsInLocation('deck_' . $current_player_id));
     }
 
     $result['hand'] = $this->tiles->getCardsInLocation('hand', $current_player_id);
 
     $result['board'] = $this->tiles->getCardsInLocation('board');
+
+    $result['groups'] = $this->findGroups();
 
     return $result;
   }
@@ -135,11 +139,19 @@ class Uptown extends Table {
         This method is called each time we are in a game state with the "updateGameProgression" property set to true 
         (see states.inc.php)
     */
-    function getGameProgression()
-    {
-        // TODO: compute and return the game progression
-
-        return 0;
+    function getGameProgression() {
+      $players = self::loadPlayersBasicInfos();
+      $tilesInPlay = 0;
+      foreach (array_keys($players) as $player_id) {
+        $tilesInPlay += $this->tiles->countCardInLocation('hand', $player_id);
+        $tilesInPlay += $this->tiles->countCardInLocation('deck_' . $player_id);
+      }
+      // Magic number is 24 tiles per player. Each player has 9 each of
+      // the three types of tiles: letter, number, and symbol; plus
+      // one $. That's 28, but minus the 4 that they'll have at the
+      // end of the game.
+      $allTiles = count($players) * 28;
+      return round((($allTiles - $tilesInPlay) / $allTiles) * 100);
     }
 
 
@@ -147,10 +159,80 @@ class Uptown extends Table {
 //////////// Utility functions
 ////////////    
 
-    /*
-        In this space, you can put any utility methods useful for your game logic
-    */
+  /*
+  In this space, you can put any utility methods useful for your game logic
+  */
 
+  // Per "Main game logic" doc, this should have been in the API
+  function dbSetScore($player_id, $count) {
+    $this->DbQuery("UPDATE player SET player_score='$count' WHERE player_id='$player_id'");
+  }
+
+  // Similar to the provided dbIncScore in the docs, but (1) they don't
+  // provide a version for aux score, and (2) their implementation is really
+  // inefficient
+  function dbIncAuxScore($player_id, $inc) {
+    $this->DbQuery("UPDATE player SET player_score_aux=player_score_aux+$inc WHERE player_id='$player_id'");
+  }
+
+  function findGroups() {
+    $tiles = $this->tiles->getCardsInLocation('board');
+
+    // Create an empty board array
+    $board = array();
+    for($square=0;$square<82;$square++) {
+      $board[$square] = NULL;
+    }
+
+    // Populate it with data from the tiles in the board location
+    foreach ($tiles as $tile) {
+      $board[$tile['location_arg']] = $tile['type'];
+    }
+
+    // Look through the board in order
+    $groups = array();
+    for($square=0;$square<82;$square++) {
+      if ($board[$square] == NULL) {
+        // Empty square
+        continue;
+      }
+      $player = $board[$square];
+      if (! isset($groups[$player])) {
+        $groups[$player] = array();
+      }
+
+      // Is the square above and/or to the left part of an existing group?
+      // Because of the order we're looping through the board we only
+      // need to worry about those two directions
+      $adjgroups = array();
+      foreach(array_keys($groups[$player]) as $gid) {
+        // square % 9 != 0 means we don't wrap from the first column
+        // of one row back to the last column of the previous one
+        if (($square % 9 != 0 && in_array($square-1, $groups[$player][$gid]))
+         || in_array($square-9, $groups[$player][$gid])) {
+          $adjgroups[] = $gid;
+        }
+      }
+      if (count($adjgroups) == 0) {
+        // No adjacent groups, so start a new one
+        $groups[$player][] = array($square);
+      } else if (count($adjgroups) == 1) {
+        // Join that group
+        $groups[$player][$adjgroups[0]][] = $square;
+      } else {
+        // Combine groups and join the result
+        $groups[$player][$adjgroups[0]] = array_merge(
+         $groups[$player][$adjgroups[0]],
+         $groups[$player][$adjgroups[1]],
+         array($square));
+        // Remove the combined group. We can't use unset() here or the
+        // keys would potentially not be contiguous, leading to weird
+        // issues with Javascript arrays vs. objects
+        array_splice($groups[$player], $adjgroups[1], 1);
+      }
+    }
+    return $groups;
+  }
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -179,12 +261,19 @@ class Uptown extends Table {
       $capture_target = $tile['type'];
       $captured_tile = $tile['type_arg'];
       $captured = TRUE;
+      $this->dbIncAuxScore($player_id, -1);
       // There should only ever be one tile in a location
       break;
     }
         
     // Put the tile on the board
     $this->tiles->moveCard($deckid, 'board', $location);
+
+    // Recalculate tile groups and set scores accordingly
+    $groups = $this->findGroups();
+    foreach ($groups as $gpid => $pgroups) {
+      $this->dbSetScore($gpid, -1 * count($pgroups));
+    }
             
     // Notify all players about the tile played
     $player_name = self::getActivePlayerName();
@@ -196,7 +285,8 @@ class Uptown extends Table {
      'i18n' => array ('tile_name'),
      'player_id' => $player_id,
      'location' => $location,
-     'tile_type' => $type
+     'tile_type' => $type,
+     'groups' => $groups
     );
     if ($captured) {
       $capture_target_name = $players[$capture_target]['player_name'];
@@ -269,9 +359,22 @@ class Uptown extends Table {
   */
 
   function stNextPlayer() {
-    $player_id = self::activeNextPlayer();
-    self::giveExtraTime($player_id);
-    $this->gamestate->nextState('nextPlayer');
+    // Check for end game
+    $players = self::loadPlayersBasicInfos();
+    $gameover = TRUE;
+    foreach (array_keys($players) as $player_id) {
+      if ($this->tiles->countCardInLocation('hand', $player_id) > 4) {
+        $gameover = FALSE;
+        break;
+      }
+    }
+    if ($gameover) {
+      $this->gamestate->nextState('gameEnd');
+    } else {
+      $player_id = self::activeNextPlayer();
+      self::giveExtraTime($player_id);
+      $this->gamestate->nextState('nextPlayer');
+    }
   }
 
 //////////////////////////////////////////////////////////////////////////////

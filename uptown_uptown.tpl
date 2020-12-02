@@ -41,11 +41,11 @@
 
 // Javascript HTML templates
 
-/*
-// Example:
-var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_ID}"></div>';
-
-*/
+var jstpl_player_board = '\<div class="cp_board">\
+    <div id="captureicon_p${id}"\
+    class="uptown_captureicon uptown_captureicon_${color}"></div>\
+   <span id="capturecount_p${id}">${capturecount}</span>\
+</div>';
 
 </script>  
 
