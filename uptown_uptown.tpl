@@ -29,7 +29,7 @@
 <div id="player_areas">
   <!-- BEGIN player_area -->
   <div class="player_area whiteblock">
-    <div class="player_name" style="color:#{PLAYER_COLOR}">{PLAYER_NAME}</div>
+    <div class="player_name" style="background-color:#{PLAYER_COLOR}">{PLAYER_NAME}</div>
     <div class="player_hand" id="player_hand_{PLAYER_ID}"></div>
     <div class="player_captured" id="player_captured_{PLAYER_ID}"></div>
     <div class="player_draw_pile" id="player_draw_pile_{PLAYER_ID}"></div>

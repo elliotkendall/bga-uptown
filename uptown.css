@@ -106,3 +106,7 @@
 .cp_board {
     clear: both;
 }
+
+div.player_name {
+  width: min-content;
+}
