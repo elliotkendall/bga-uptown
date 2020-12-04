@@ -77,6 +77,32 @@
     margin-right: 3px;
 }
 
+.uptown_drawpileicon {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    position: relative;
+    margin-top: 4px;
+    margin-right: 3px;
+    border: thin black solid;
+}
+
+.uptown_drawpileicon_c5f0f9 {
+  background-color: #c5f0f9;
+}
+.uptown_drawpileicon_c8e6c8 {
+  background-color: #c8e6c8;
+}
+.uptown_drawpileicon_f28c60 {
+  background-color: #f28c60;
+}
+.uptown_drawpileicon_f03f84 {
+  background-color: #f03f84;
+}
+.uptown_drawpileicon_ffff8b {
+  background-color: #ffff8b;
+}
+
 .cp_board {
     clear: both;
 }

@@ -45,6 +45,9 @@ var jstpl_player_board = '\<div class="cp_board">\
     <div id="captureicon_p${id}"\
     class="uptown_captureicon uptown_captureicon_${color}"></div>\
    <span id="capturecount_p${id}">${capturecount}</span>\
+    <div id="drawpileicon_p${id}"\
+    class="uptown_drawpileicon uptown_drawpileicon_${color}"></div>\
+   <span id="drawpilecount_p${id}">${deckcount}</span>\
 </div>';
 
 </script>  
