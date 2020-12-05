@@ -115,9 +115,9 @@ class Uptown extends Table {
       $result['players'][$player_id]['captured'] =
        $this->tiles->getCardsInLocation('captured', $player_id);
       $result['players'][$player_id]['handcount'] =
-       count($this->tiles->getCardsInLocation('hand', $current_player_id));
+       count($this->tiles->getCardsInLocation('hand', $player_id));
       $result['players'][$player_id]['deckcount'] =
-       count($this->tiles->getCardsInLocation('deck_' . $current_player_id));
+       count($this->tiles->getCardsInLocation('deck_' . $player_id));
     }
 
     $result['hand'] = $this->tiles->getCardsInLocation('hand', $current_player_id);
@@ -174,25 +174,16 @@ class Uptown extends Table {
   function findGroups() {
     $tiles = $this->tiles->getCardsInLocation('board');
 
-    // Create an empty board array
+    // Populate board array with data from the tiles in the board location
     $board = array();
-    for($square=0;$square<82;$square++) {
-      $board[$square] = NULL;
-    }
-
-    // Populate it with data from the tiles in the board location
     foreach ($tiles as $tile) {
       $board[$tile['location_arg']] = $tile['type'];
     }
 
     // Look through the board in order
     $groups = array();
-    for($square=0;$square<82;$square++) {
-      if ($board[$square] == NULL) {
-        // Empty square
-        continue;
-      }
-      $player = $board[$square];
+    ksort($board);
+    foreach($board as $square => $player) {
       if (! isset($groups[$player])) {
         $groups[$player] = array();
       }
