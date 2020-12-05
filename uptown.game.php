@@ -146,12 +146,8 @@ class Uptown extends Table {
         $tilesInPlay += $this->tiles->countCardInLocation('hand', $player_id);
         $tilesInPlay += $this->tiles->countCardInLocation('deck_' . $player_id);
       }
-      // Magic number is 24 tiles per player. Each player has 9 each of
-      // the three types of tiles: letter, number, and symbol; plus
-      // one $. That's 28, but minus the 4 that they'll have at the
-      // end of the game.
-      $allTiles = count($players) * 28;
-      return round((($allTiles - $tilesInPlay) / $allTiles) * 100);
+      $numPlayers = count($players);
+      return round((1 - (($tilesInPlay - 4 * $numPlayers) / (24 * $numPlayers))) * 100);
     }
 
 
