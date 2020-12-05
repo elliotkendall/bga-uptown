@@ -243,11 +243,16 @@ function (dojo, declare) {
     your javascript script.
     */
 
-
-    // Like scoreCtrl for the captured tiles count in the player 
+    // Like scoreCtrl for the captured tiles count in the player panel
     incrementCaptureCount: function(player_id) {
       var span = dojo.query("#capturecount_p" + player_id);
       span.text(parseInt(span.text()) + 1);
+    },
+
+    // Like scoreCtrl for the draw pile size in the player panel
+    setDeckCount: function(player_id, count) {
+      var span = dojo.query("#drawpilecount_p" + player_id);
+      span.text(count);
     },
 
     // Get tile stock identifier based on its color and name
@@ -473,6 +478,7 @@ function (dojo, declare) {
       }
       this.setBoardSquareTile(stockid, locationDOM);
 
+      this.setDeckCount(player_id, notif.args.deckcount);
       // Update player scores
       for (var gpid in notif.args.groups) {
         this.scoreCtrl[gpid].setValue(-1 * notif.args.groups[gpid].length);

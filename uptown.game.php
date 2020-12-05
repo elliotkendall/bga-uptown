@@ -282,6 +282,7 @@ class Uptown extends Table {
      'player_id' => $player_id,
      'location' => $location,
      'tile_type' => $type,
+     'deckcount' => count($this->tiles->getCardsInLocation('deck_' . $player_id)),
      'groups' => $groups
     );
     if ($captured) {
