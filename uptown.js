@@ -162,6 +162,11 @@ function (dojo, declare) {
         this.setBoardSquareTile(stockid, $('square_' + location));
       }
 
+      // Configure protected squares
+      for (var i in gamedatas.protected) {
+        dojo.query('#square_' + gamedatas.protected[i]).addClass('protected');
+      }
+
       // Set up onClick action for the board squares
       this.addEventToClass('square', 'onclick', 'onClickBoardSquare');
 
@@ -298,68 +303,6 @@ function (dojo, declare) {
       }
     },
 
-    // For some reason, "this" in this function gets bound to the wrong
-    // object and we can't e.g.  call other local functions.  So as a
-    // workaround we pass in "this" from the calling context
-    findGroups: function(context) {
-      // Create an empty board object
-      var board = [];
-      for (var square=0;square<82;square++) {
-        board[square] = null;
-      }
-
-      // Extract tile info from the board DOM
-      dojo.query("div.square[class*=\"type_\"]").forEach(function(node) {
-        var location = node.id.split('_', 2)[1]; // square_xx
-        var typeclass = Array.from(node.classList)
-         .find(function(i){return i.startsWith('type_')});
-        var stockid = typeclass.split('_', 2)[1]; // type_xx
-        var colorAndType = context.tileStockIdToColorAndType(stockid);
-        var player_id = context.playerIdsByColor[context.colors[colorAndType[0]]];
-        board[location] = player_id;
-      });
-
-      // Look through the board in order
-      var groups = {};
-      for (var square=0;square<82;square++) {
-        if (board[square] == null) {
-          // Empty square
-          continue;
-        }
-        var player = board[square];
-        if (! (player in groups)) {
-          groups[player] = [];
-        }
-
-        // Is the square above and/or to the left part of an existing group?
-        // Because of the order we're looping through the board we only
-        // need to worry about those two directions
-        var adjgroups = [];
-        for (var gid=0;gid<groups[player].length;gid++) {
-          // square % 9 != 0 means we don't wrap from the first column
-          // of one row back to the last column of the previous one
-          if ((square % 9 != 0 && groups[player][gid].includes(square-1))
-           || groups[player][gid].includes(square-9)) {
-            adjgroups.push(gid);
-          }
-        }
-        if (adjgroups.length == 0) {
-          // No adjacent groups, so start a new one
-          groups[player].push([square]);
-        } else if (adjgroups.length == 1) {
-          // Join that group
-          groups[player][adjgroups[0]].push(square);
-        } else {
-          // Combine groups and join the result
-          groups[player][adjgroups[0]] = groups[player][adjgroups[0]].concat([square], groups[player][adjgroups[1]]);
-          // Remove the combined group
-          groups[player] = groups[player].splice(adjgroups[1]-1, 1);
-          console.log(groups[player]);
-        }
-      }
-      return groups;
-    },
-
     ///////////////////////////////////////////////////
     //// Player's action
         
@@ -482,6 +425,12 @@ function (dojo, declare) {
       // Update player scores
       for (var gpid in notif.args.groups) {
         this.scoreCtrl[gpid].setValue(-1 * notif.args.groups[gpid].length);
+      }
+
+      // Update protected squares
+      dojo.query('.protected').removeClass('protected');
+      for (var i in notif.args.protected) {
+        dojo.query('#square_' + notif.args.protected[i]).addClass('protected');
       }
     }
 

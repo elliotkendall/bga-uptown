@@ -126,6 +126,8 @@ class Uptown extends Table {
 
     $result['groups'] = $this->findGroups();
 
+    $result['protected'] = $this->findProtectedTiles($result['groups']);
+
     return $result;
   }
 
@@ -171,6 +173,7 @@ class Uptown extends Table {
     $this->DbQuery("UPDATE player SET player_score_aux=player_score_aux+$inc WHERE player_id='$player_id'");
   }
 
+  // Find all the groups present in the current board data
   function findGroups() {
     $tiles = $this->tiles->getCardsInLocation('board');
 
@@ -179,7 +182,25 @@ class Uptown extends Table {
     foreach ($tiles as $tile) {
       $board[$tile['location_arg']] = $tile['type'];
     }
+    return $this->findGroupsReal($board);
+  }
 
+  // Find all groups present in a list of locations with no owner
+  // information
+  function findGroupsNoPlayer($board) {
+    $board = array_combine($board, array_fill(0, count($board), 'foo'));
+    $ret = $this->findGroupsReal($board);
+    if (isset($ret['foo'])) {
+      return $ret['foo'];
+    } else {
+      return array();
+    }
+  }
+
+
+  // Do the actual work of finding groups. Expects an array of format
+  // [ {location: playerid}, {location: playerid}, ... ]
+  function findGroupsReal($board) {
     // Look through the board in order
     $groups = array();
     ksort($board);
@@ -221,6 +242,31 @@ class Uptown extends Table {
     return $groups;
   }
 
+  // Does a particular list of tile locations comprise a group, i.e.
+  // is each location adjacent to at least one other?
+  function isGroup($tiles) {
+    $groups = $this->findGroupsNoPlayer($tiles);
+    return (count($groups) == 1 && count($groups[0]) == count($tiles));
+  }
+
+  // Find the 'protected' tiles from the output of findGroups*(), i.e.
+  // tiles that are illegal to capture
+  function findProtectedTiles($groups) {
+    $protected = array();
+    foreach($groups as $player => $pgroups) {
+      foreach($pgroups as $group) {
+        for($i=0;$i<count($group);$i++) {
+          # Make a copy so we're not modifying the original
+          $g = $group;
+          unset($g[$i]);
+          if (! $this->isGroup($g)) {
+            $protected[] = $group[$i];
+          }
+        }
+      }
+    }
+    return $protected;
+  }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -274,7 +320,8 @@ class Uptown extends Table {
      'location' => $location,
      'tile_type' => $type,
      'deckcount' => count($this->tiles->getCardsInLocation('deck_' . $player_id)),
-     'groups' => $groups
+     'groups' => $groups,
+     'protected' => $this->findProtectedTiles($groups)
     );
     if ($captured) {
       $capture_target_name = $players[$capture_target]['player_name'];
