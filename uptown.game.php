@@ -256,6 +256,9 @@ class Uptown extends Table {
     foreach($groups as $player => $pgroups) {
       foreach($pgroups as $group) {
         for($i=0;$i<count($group);$i++) {
+          if (count($group) == 1) {
+            continue;
+          }
           # Make a copy so we're not modifying the original
           $g = $group;
           unset($g[$i]);
