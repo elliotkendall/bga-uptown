@@ -159,7 +159,7 @@ function (dojo, declare) {
 
         var stockid = this.getTileStockId(
          color, name);
-        this.setBoardSquareTile(stockid, $('square_' + location));
+        this.setBoardSquareTile(stockid, $('square_' + location), color);
       }
 
       // Configure protected squares
@@ -280,7 +280,8 @@ function (dojo, declare) {
     },
 
     // Place a tile onto a square of the board
-    setBoardSquareTile: function(stockid, square) {
+    setBoardSquareTile: function(stockid, square, color) {
+      dojo.addClass(square, 'color_' + color);
       dojo.addClass(square, 'type_' + stockid);
       dojo.style(square, 'background-position',
        this.tileStockIdToSpriteOffset(stockid));
@@ -296,11 +297,22 @@ function (dojo, declare) {
       var colorAndType = this.tileStockIdToColorAndType(stockid);
       var type = colorAndType[1];
       var name = this.tiles[type];
+      var squares = dojo.NodeList();
+      var query;
       if (name == '$') {
-        dojo.query('.square').addClass('possibleMove');
+        query = '.square';
       } else {
-        dojo.query('.kind_' + name).addClass('possibleMove');
+        query = '.kind_' + name;
       }
+      var cl;
+      var colorclass = 'color_' + this.myColor;
+      dojo.query(query).forEach(function(node) {
+        cl = node.classList;
+        if (! (cl.contains('protected') || cl.contains(colorclass))) {
+          squares.push(node);
+        }
+      });
+      squares.addClass('possibleMove');
     },
 
     ///////////////////////////////////////////////////
@@ -419,7 +431,7 @@ function (dojo, declare) {
         var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
         this.hands[player_id].removeFromStock(id, locationDOM);
       }
-      this.setBoardSquareTile(stockid, locationDOM);
+      this.setBoardSquareTile(stockid, locationDOM, color);
 
       this.setDeckCount(player_id, notif.args.deckcount);
       // Update player scores
