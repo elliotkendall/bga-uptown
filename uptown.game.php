@@ -271,6 +271,93 @@ class Uptown extends Table {
     return $protected;
   }
 
+  function locationToTypeIDs($location) {
+    $lookup = array(
+      0 => array('guy', '1', 'A', '$'),
+      1 => array('guy', '2', 'A', '$'),
+      2 => array('guy', '3', 'A', '$'),
+      3 => array('ring', '4', 'A', '$'),
+      4 => array('ring', '5', 'A', '$'),
+      5 => array('ring', '6', 'A', '$'),
+      6 => array('lady', '7', 'A', '$'),
+      7 => array('lady', '8', 'A', '$'),
+      8 => array('lady', '9', 'A', '$'),
+      9 => array('guy', '1', 'B', '$'),
+      10 => array('guy', '2', 'B', '$'),
+      11 => array('guy', '3', 'B', '$'),
+      12 => array('ring', '4', 'B', '$'),
+      13 => array('ring', '5', 'B', '$'),
+      14 => array('ring', '6', 'B', '$'),
+      15 => array('lady', '7', 'B', '$'),
+      16 => array('lady', '8', 'B', '$'),
+      17 => array('lady', '9', 'B', '$'),
+      18 => array('guy', '1', 'C', '$'),
+      19 => array('guy', '2', 'C', '$'),
+      20 => array('guy', '3', 'C', '$'),
+      21 => array('ring', '4', 'C', '$'),
+      22 => array('ring', '5', 'C', '$'),
+      23 => array('ring', '6', 'C', '$'),
+      24 => array('lady', '7', 'C', '$'),
+      25 => array('lady', '8', 'C', '$'),
+      26 => array('lady', '9', 'C', '$'),
+      27 => array('lamp', '1', 'D', '$'),
+      28 => array('lamp', '2', 'D', '$'),
+      29 => array('lamp', '3', 'D', '$'),
+      30 => array('city', '4', 'D', '$'),
+      31 => array('city', '5', 'D', '$'),
+      32 => array('city', '6', 'D', '$'),
+      33 => array('sax', '7', 'D', '$'),
+      34 => array('sax', '8', 'D', '$'),
+      35 => array('sax', '9', 'D', '$'),
+      36 => array('lamp', '1', 'E', '$'),
+      37 => array('lamp', '2', 'E', '$'),
+      38 => array('lamp', '3', 'E', '$'),
+      39 => array('city', '4', 'E', '$'),
+      40 => array('city', '5', 'E', '$'),
+      41 => array('city', '6', 'E', '$'),
+      42 => array('sax', '7', 'E', '$'),
+      43 => array('sax', '8', 'E', '$'),
+      44 => array('sax', '9', 'E', '$'),
+      45 => array('lamp', '1', 'F', '$'),
+      46 => array('lamp', '2', 'F', '$'),
+      47 => array('lamp', '3', 'F', '$'),
+      48 => array('city', '4', 'F', '$'),
+      49 => array('city', '5', 'F', '$'),
+      50 => array('city', '6', 'F', '$'),
+      51 => array('sax', '7', 'F', '$'),
+      52 => array('sax', '8', 'F', '$'),
+      53 => array('sax', '9', 'F', '$'),
+      54 => array('car', '1', 'G', '$'),
+      55 => array('car', '2', 'G', '$'),
+      56 => array('car', '3', 'G', '$'),
+      57 => array('cards', '4', 'G', '$'),
+      58 => array('cards', '5', 'G', '$'),
+      59 => array('cards', '6', 'G', '$'),
+      60 => array('wine', '7', 'G', '$'),
+      61 => array('wine', '8', 'G', '$'),
+      62 => array('wine', '9', 'G', '$'),
+      63 => array('car', '1', 'H', '$'),
+      64 => array('car', '2', 'H', '$'),
+      65 => array('car', '3', 'H', '$'),
+      66 => array('cards', '4', 'H', '$'),
+      67 => array('cards', '5', 'H', '$'),
+      68 => array('cards', '6', 'H', '$'),
+      69 => array('wine', '7', 'H', '$'),
+      70 => array('wine', '8', 'H', '$'),
+      71 => array('wine', '9', 'H', '$'),
+      72 => array('car', '1', 'I', '$'),
+      73 => array('car', '2', 'I', '$'),
+      74 => array('car', '3', 'I', '$'),
+      75 => array('cards', '4', 'I', '$'),
+      76 => array('cards', '5', 'I', '$'),
+      77 => array('cards', '6', 'I', '$'),
+      78 => array('wine', '7', 'I', '$'),
+      79 => array('wine', '8', 'I', '$'),
+      80 => array('wine', '9', 'I', '$')
+    );
+    return $lookup[$location];
+  }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
 //////////// 
@@ -288,6 +375,38 @@ class Uptown extends Table {
     $players = self::loadPlayersBasicInfos();
 
     $existing = $this->tiles->getCardsInLocation('board', $location);
+
+    // Sanity checks
+    $location = intval($location);
+    if ($location < 0 || $location > 80) {
+      print 'Invalid location';
+      return;
+    }
+
+    $deckid = intval($deckid);
+    $tile = $this->tiles->getCard($deckid);
+
+    if ($tile['location'] !== 'hand' || $tile['location_arg'] !== $player_id) {
+      print "You don't have that tile";
+      return;
+    }
+
+    if (! in_array($this->tile_values[$tile['type_arg']],
+     $this->locationToTypeIDs($location))) {
+      print "That tile doesn't go there";
+      return;
+    }
+    
+    $target = $this->tiles->getCardsInLocation('board', $location);
+    if (count($target) == 1 && array_shift($target)['type'] == $player_id) {
+      print "You can't capture your own tile";
+      return;
+    }
+
+    if (in_array($location, $this->findProtectedTiles($this->findGroups()))) {
+      print "Capturing that tile would break up a group";
+      return;    
+    }
 
     $captured = FALSE;
     $captured_tile = NULL;
