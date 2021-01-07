@@ -436,12 +436,21 @@ class Uptown extends Table {
     $tile_name = $this->tile_values[$type];
 
     $message = "${player_name} plays ${tile_name}";
+
+    // For some reason this is always off by 1 here.  Maybe the moveCard
+    // call above hasn't been fully committed yet or something?  We also
+    // can't just blindly subtract 1 or we'll end up with -1 at the end of
+    // the game
+    $deckcount = count($this->tiles->getCardsInLocation('deck_' . $player_id));
+    if ($deckcount > 0) {
+      $deckcount--;
+    }
     $ret = array(
      'i18n' => array ('tile_name'),
      'player_id' => $player_id,
      'location' => $location,
      'tile_type' => $type,
-     'deckcount' => count($this->tiles->getCardsInLocation('deck_' . $player_id)),
+     'deckcount' => $deckcount,
      'groups' => $groups,
      'protected' => $this->findProtectedTiles($groups)
     );
