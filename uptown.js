@@ -281,6 +281,12 @@ function (dojo, declare) {
 
     // Place a tile onto a square of the board
     setBoardSquareTile: function(stockid, square, color) {
+      // Remove any color or kind classes
+      square.classList.forEach(function(cls) {
+        if (cls.startsWith('color_') || cls.startsWith('type_')) {
+          dojo.removeClass(square, cls);
+        }
+      });
       dojo.addClass(square, 'color_' + color);
       dojo.addClass(square, 'type_' + stockid);
       dojo.style(square, 'background-position',
