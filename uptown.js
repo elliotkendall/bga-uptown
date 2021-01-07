@@ -64,8 +64,12 @@ function (dojo, declare) {
        this.tilewidth, this.tileheight);
       dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
 
-      // Only one item can be selected at a time
-      this.playerHand.setSelectionMode(1);
+      // Allow one item to be selected if it's our turn
+      if (this.checkAction('playTile', true)) {
+        this.playerHand.setSelectionMode(1);
+      } else {
+        this.playerHand.setSelectionMode(0);
+      }
 
       // tiles per row in the sprite image
       this.playerHand.image_items_per_row = this.tiles.length;
@@ -186,16 +190,11 @@ function (dojo, declare) {
     //
     onEnteringState: function(stateName, args) {
       console.log('Entering state: ' + stateName);
-
-      switch(stateName) {
-        /* Example:
-        case 'myGameState':
-          // Show some HTML block at this game state
-          dojo.style( 'my_html_block_id', 'display', 'block' );
-          break;
-        */
-        case 'dummy':
-        break;
+      // Make hand tiles clickable if it's our turn
+      if (this.checkAction('playTile', true)) {
+        this.playerHand.setSelectionMode(1);
+      } else {
+        this.playerHand.setSelectionMode(0);
       }
     },
 
