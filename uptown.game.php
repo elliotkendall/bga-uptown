@@ -379,33 +379,29 @@ class Uptown extends Table {
     // Sanity checks
     $location = intval($location);
     if ($location < 0 || $location > 80) {
-      print 'Invalid location';
-      return;
+      throw new feException('Invalid location');
     }
 
     $deckid = intval($deckid);
     $tile = $this->tiles->getCard($deckid);
 
     if ($tile['location'] !== 'hand' || $tile['location_arg'] !== $player_id) {
-      print "You don't have that tile";
+      throw new feException("You don't have that tile");
       return;
     }
 
     if (! in_array($this->tile_values[$tile['type_arg']],
      $this->locationToTypeIDs($location))) {
-      print "That tile doesn't go there";
-      return;
+      throw new feException("That tile doesn't go there");
     }
     
     $target = $this->tiles->getCardsInLocation('board', $location);
     if (count($target) == 1 && array_shift($target)['type'] == $player_id) {
-      print "You can't capture your own tile";
-      return;
+      throw new feException("You can't capture your own tile");
     }
 
     if (in_array($location, $this->findProtectedTiles($this->findGroups()))) {
-      print "Capturing that tile would break up a group";
-      return;    
+      throw new feException("Capturing that tile would break up a group");
     }
 
     $captured = FALSE;
