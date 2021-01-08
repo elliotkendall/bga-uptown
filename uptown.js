@@ -62,6 +62,7 @@ function (dojo, declare) {
       this.playerHand = new ebg.stock();
       this.playerHand.create(this, $('player_hand_self'),
        this.tilewidth, this.tileheight);
+      this.playerHand.setSelectionAppearance('class');
       dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
 
       // Allow one item to be selected if it's our turn

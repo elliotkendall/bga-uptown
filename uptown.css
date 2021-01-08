@@ -62,7 +62,13 @@
 }
 
 #board .possibleMove {
-  border: thin red solid;
+  outline: .2rem red solid;
+  cursor: pointer;
+}
+
+.stockitem_selected {
+  border-style: none;
+  outline: .2rem red solid;
 }
 
 .uptown_captureicon {
