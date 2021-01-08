@@ -52,44 +52,40 @@ $stats_type = array(
     // Statistics global to table
     "table" => array(
 
-        "turns_number" => array("id"=> 10,
-                    "name" => totranslate("Number of turns"),
+        "final_groups_number" => array("id"=> 10,
+                    "name" => totranslate("Final number of groups"),
+                    "type" => "int" ),
+        "maximum_groups_number" => array("id"=> 11,
+                    "name" => totranslate("Maximum number of groups"),
+                    "type" => "int" ),
+        "tiles_captured" => array("id"=> 12,
+                    "name" => totranslate("Number of tiles captured"),
                     "type" => "int" ),
 
-/*
-        Examples:
-
-
-        "table_teststat1" => array(   "id"=> 10,
-                                "name" => totranslate("table test stat 1"), 
-                                "type" => "int" ),
-                                
-        "table_teststat2" => array(   "id"=> 11,
-                                "name" => totranslate("table test stat 2"), 
-                                "type" => "float" )
-*/  
     ),
     
     // Statistics existing for each player
     "player" => array(
 
-        "turns_number" => array("id"=> 10,
-                    "name" => totranslate("Number of turns"),
+        "final_groups_number" => array("id"=> 10,
+                    "name" => totranslate("Final number of groups"),
+                    "type" => "int" ),
+        "maximum_groups_number" => array("id"=> 11,
+                    "name" => totranslate("Maximum number of groups"),
+                    "type" => "int" ),
+        "opponents_tiles_captured_count" => array("id"=> 12,
+                    "name" => totranslate("Number of opponents' tiles captured"),
+                    "type" => "int" ),
+        "tiles_captured_by_opponents_count" => array("id"=> 13,
+                    "name" => totranslate("Number of your tiles captured by opponents"),
+                    "type" => "int" ),
+        "max_captured_from_one_opponent" => array("id"=> 14,
+                    "name" => totranslate("Highest number of tiles you captured from a single opponent"),
+                    "type" => "int" ),
+        "min_captured_from_one_opponent" => array("id"=> 15,
+                    "name" => totranslate("Lowest number of tiles you captured from a single opponent"),
                     "type" => "int" ),
     
-/*
-        Examples:    
-        
-        
-        "player_teststat1" => array(   "id"=> 10,
-                                "name" => totranslate("player test stat 1"), 
-                                "type" => "int" ),
-                                
-        "player_teststat2" => array(   "id"=> 11,
-                                "name" => totranslate("player test stat 2"), 
-                                "type" => "float" )
-
-*/    
     )
 
 );

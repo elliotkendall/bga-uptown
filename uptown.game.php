@@ -61,9 +61,13 @@ class Uptown extends Table {
         
     /************ Start the game initialization *****/
     // Init game statistics
-    // (note: statistics used in this file must be defined in your stats.inc.php file)
-    //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
-    //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
+
+    foreach(array('final_groups_number', 'maximum_groups_number', 'tiles_captured') as $stat) {
+      self::initStat('table', $stat, 0);
+    }
+    foreach(array('final_groups_number', 'maximum_groups_number', 'opponents_tiles_captured_count', 'tiles_captured_by_opponents_count') as $stat) {
+      self::initStat('player', $stat, 0);
+    }
 
     foreach($players as $player_id => $player) {
       $tiles = array();
@@ -79,6 +83,7 @@ class Uptown extends Table {
 
       // Draw a hand of tiles
       $this->tiles->pickCards(5, 'deck_' . $player_id, $player_id);
+
     }
 
     // Activate first player (which is in general a good idea :) )
@@ -413,6 +418,33 @@ class Uptown extends Table {
       $captured_tile = $tile['type_arg'];
       $captured = TRUE;
       $this->dbIncAuxScore($player_id, -1);
+      self::incStat(1, 'tiles_captured');
+      self::incStat(1, 'opponents_tiles_captured_count', $player_id);
+      self::incStat(1, 'tiles_captured_by_opponents_count', $capture_target);
+
+      // Find the opponent we've captured the most and fewest tiles from
+      $captureCounts = array();
+      foreach (array_keys($players) as $thispid) {
+        $captureCounts[$thispid] = 0;
+      }
+      foreach ($this->tiles->getCardsInLocation('captured', $player_id)
+       as $id => $card) {
+        $player = $card['type'];
+        $captureCounts[$player]++;
+      }
+      $max = 0;
+      $min = 99;
+      foreach ($captureCounts as $player => $count) {
+        if ($count > $max) {
+          $max = $count;
+        }
+        if ($count < $min) {
+          $min = $count;
+        }
+      }
+      self::setStat($max, 'max_captured_from_one_opponent', $player_id);
+      self::setStat($min, 'min_captured_from_one_opponent', $player_id);
+
       // There should only ever be one tile in a location
       break;
     }
@@ -420,12 +452,22 @@ class Uptown extends Table {
     // Put the tile on the board
     $this->tiles->moveCard($deckid, 'board', $location);
 
-    // Recalculate tile groups and set scores accordingly
+    // Recalculate tile groups and set scores and stats accordingly
     $groups = $this->findGroups();
+    $total = 0;
     foreach ($groups as $gpid => $pgroups) {
-      $this->dbSetScore($gpid, -1 * count($pgroups));
+      $count = count($pgroups);
+      $this->dbSetScore($gpid, -1 * $count);
+      self::setStat($count, 'final_groups_number', $gpid);
+      if ($count > self::getStat('maximum_groups_number', $gpid)) {
+        self::setStat($count, 'maximum_groups_number', $gpid);
+      }
+      $total += $count;
     }
-            
+    self::setStat($total, 'final_groups_number');
+    if ($total > self::getStat('maximum_groups_number')) {
+        self::setStat($total, 'maximum_groups_number');
+    }
     // Notify all players about the tile played
     $player_name = self::getActivePlayerName();
     $type = $this->tiles->getCard($deckid)['type_arg'];
