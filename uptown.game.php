@@ -166,6 +166,12 @@ class Uptown extends Table {
   In this space, you can put any utility methods useful for your game logic
   */
 
+  function isPlayerZombie($player_id) {
+    $sql = "SELECT player_zombie FROM player where player_id=" . $player_id;
+    $result = self::getNonEmptyObjectFromDB($sql);
+    return $result['player_zombie'];
+  }
+
   // Per "Main game logic" doc, this should have been in the API
   function dbSetScore($player_id, $count) {
     $this->DbQuery("UPDATE player SET player_score='$count' WHERE player_id='$player_id'");
@@ -567,7 +573,7 @@ class Uptown extends Table {
     $players = self::loadPlayersBasicInfos();
     $gameover = TRUE;
     foreach (array_keys($players) as $player_id) {
-      if ($this->tiles->countCardInLocation('hand', $player_id) > 4) {
+      if (! $this->isPlayerZombie($player_id) && $this->tiles->countCardInLocation('hand', $player_id) > 4) {
         $gameover = FALSE;
         break;
       }
@@ -598,28 +604,12 @@ class Uptown extends Table {
         you must _never_ use getCurrentPlayerId() or getCurrentPlayerName(), otherwise it will fail with a "Not logged" error message. 
     */
 
-    function zombieTurn( $state, $active_player )
-    {
-    	$statename = $state['name'];
-    	
-        if ($state['type'] === "activeplayer") {
-            switch ($statename) {
-                default:
-                    $this->gamestate->nextState( "zombiePass" );
-                	break;
-            }
-
-            return;
-        }
-
-        if ($state['type'] === "multipleactiveplayer") {
-            // Make sure player is in a non blocking status for role turn
-            $this->gamestate->setPlayerNonMultiactive( $active_player, '' );
-            
-            return;
-        }
-
-        throw new feException( "Zombie mode not supported at this game state: ".$statename );
+    function zombieTurn( $state, $active_player ) {
+      if ($state['name'] == 'playerTurn') {
+        $this->gamestate->nextState( "zombiePass" );
+      } else {
+        throw new feException( "Zombie mode not supported at this game state:".$state['name'] );
+      }
     }
     
 ///////////////////////////////////////////////////////////////////////////////////:
