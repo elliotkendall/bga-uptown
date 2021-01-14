@@ -63,6 +63,7 @@ function (dojo, declare) {
       this.playerHand.create(this, $('uptown_player_hand_self'),
        this.tilewidth, this.tileheight);
       this.playerHand.setSelectionAppearance('class');
+      this.playerHand.extraClasses='uptown_player_hand_self_item';
       dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
 
       // Allow one item to be selected if it's our turn
@@ -156,6 +157,14 @@ function (dojo, declare) {
         var stockid = this.getTileStockId(this.myColor, name);
         this.playerHand.addToStockWithId(stockid, deckid);
       }
+
+      // Display an error when controls are clicked out of turn
+      dojo.query('.uptown_player_hand_self_item, .uptown_square')
+       .connect('onclick', this, function(evt) {
+        if (! this.checkAction('playTile', true)) {
+          this.showMessage("It's not your turn", "error")
+        }
+      });
 
       // Fill in board squares
       for (var deckid in gamedatas.board) {
