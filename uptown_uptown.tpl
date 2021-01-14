@@ -43,11 +43,11 @@
 
 var jstpl_player_board = '\<div class="uptown_cp_board">\
     <div id="uptown_captureicon_p${id}"\
-    class="uptown_captureicon uptown_captureicon_${color}"></div>\
-   <span id="uptown_capturecount_p${id}">${capturecount}</span>\
+    class="uptown_capture_tooltip uptown_captureicon uptown_captureicon_${color}"></div>\
+   <span id="uptown_capturecount_p${id}" class="uptown_capture_tooltip">${capturecount}</span>\
     <div id="uptown_drawpileicon_p${id}"\
-    class="uptown_drawpileicon uptown_drawpileicon_${color}"></div>\
-   <span id="uptown_drawpilecount_p${id}">${deckcount}</span>\
+    class="uptown_draw_tooltip uptown_drawpileicon uptown_drawpileicon_${color}"></div>\
+   <span id="uptown_drawpilecount_p${id}" class="uptown_draw_tooltip">${deckcount}</span>\
 </div>';
 
 </script>  

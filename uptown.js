@@ -114,6 +114,8 @@ function (dojo, declare) {
         var player_board_div = $('player_board_'+player_id);
         player.capturecount = Object.keys(player.captured).length;
         dojo.place( this.format_block('jstpl_player_board', player ), player_board_div);
+        this.addTooltipToClass("uptown_capture_tooltip", _("Number of opponents' tiles captured"), '');
+        this.addTooltipToClass("uptown_draw_tooltip", _("Number of tiles left to draw"), '');
       }
 
       // Create tile types
