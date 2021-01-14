@@ -503,7 +503,7 @@ class Uptown extends Table {
     if ($captured) {
       $capture_target_name = $players[$capture_target]['player_name'];
       $captured_tile_name = $this->tile_values[$captured_tile];
-      $message = clienttranslate("${player_name} plays ${tile_name}, capturing ${capture_target_name}'s ${captured_tile_name}";
+      $message = clienttranslate("${player_name} plays ${tile_name}, capturing ${capture_target_name}'s ${captured_tile_name}");
       $ret['i18n'][] = 'captured_tile_name';
     }
 
