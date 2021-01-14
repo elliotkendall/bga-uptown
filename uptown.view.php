@@ -49,12 +49,12 @@
         $template = self::getGameName() . "_" . self::getGameName();
 
         // this will inflate our player block with actual players data
-        $this->page->begin_block($template, "player_area");
+        $this->page->begin_block($template, "uptown_player_area");
         foreach ($players as $player_id => $info) {
           if ($player_id == $g_user->get_id()) {
             continue;
           }
-          $this->page->insert_block("player_area", array(
+          $this->page->insert_block("uptown_player_area", array(
             "PLAYER_ID" => $player_id,
             "PLAYER_NAME" => $players[$player_id]['player_name'],
             "PLAYER_COLOR" => $players[$player_id]['player_color']));

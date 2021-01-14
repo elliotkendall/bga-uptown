@@ -60,7 +60,7 @@ function (dojo, declare) {
 
       // Player hand
       this.playerHand = new ebg.stock();
-      this.playerHand.create(this, $('player_hand_self'),
+      this.playerHand.create(this, $('uptown_player_hand_self'),
        this.tilewidth, this.tileheight);
       this.playerHand.setSelectionAppearance('class');
       dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
@@ -86,11 +86,11 @@ function (dojo, declare) {
         this.playerIdsByColor[this.colorsByHex[player.color]] = player_id;
         var ca = new ebg.stock();
         if (player_id == this.myId) {
-          var target = $('player_captured_self');
+          var target = $('uptown_player_captured_self');
         } else {
-          var target = $('player_captured_' + player_id);
+          var target = $('uptown_player_captured_' + player_id);
           var hand = new ebg.stock();
-          hand.create(this, $('player_hand_' + player_id), this.tilewidth, this.tileheight);
+          hand.create(this, $('uptown_player_hand_' + player_id), this.tilewidth, this.tileheight);
           // Don't allow selection
           hand.setSelectionMode(0);
           hand.image_items_per_row = 1;
@@ -164,16 +164,16 @@ function (dojo, declare) {
 
         var stockid = this.getTileStockId(
          color, name);
-        this.setBoardSquareTile(stockid, $('square_' + location), color);
+        this.setBoardSquareTile(stockid, $('uptown_square_' + location), color);
       }
 
       // Configure protected squares
       for (var i in gamedatas.protected) {
-        dojo.query('#square_' + gamedatas.protected[i]).addClass('protected');
+        dojo.query('#uptown_square_' + gamedatas.protected[i]).addClass('uptown_protected');
       }
 
       // Set up onClick action for the board squares
-      this.addEventToClass('square', 'onclick', 'onClickBoardSquare');
+      this.addEventToClass('uptown_square', 'onclick', 'onClickBoardSquare');
 
       // Set up notification handlers
       this.setupNotifications();
@@ -250,13 +250,13 @@ function (dojo, declare) {
 
     // Like scoreCtrl for the captured tiles count in the player panel
     incrementCaptureCount: function(player_id) {
-      var span = dojo.query("#capturecount_p" + player_id);
+      var span = dojo.query("#uptown_capturecount_p" + player_id);
       span.text(parseInt(span.text()) + 1);
     },
 
     // Like scoreCtrl for the draw pile size in the player panel
     setDeckCount: function(player_id, count) {
-      var span = dojo.query("#drawpilecount_p" + player_id);
+      var span = dojo.query("#uptown_drawpilecount_p" + player_id);
       span.text(count);
     },
 
@@ -283,12 +283,12 @@ function (dojo, declare) {
     setBoardSquareTile: function(stockid, square, color) {
       // Remove any color or kind classes
       square.classList.forEach(function(cls) {
-        if (cls.startsWith('color_') || cls.startsWith('type_')) {
+        if (cls.startsWith('uptown_color_') || cls.startsWith('type_')) {
           dojo.removeClass(square, cls);
         }
       });
-      dojo.addClass(square, 'color_' + color);
-      dojo.addClass(square, 'type_' + stockid);
+      dojo.addClass(square, 'uptown_color_' + color);
+      dojo.addClass(square, 'uptown_type_' + stockid);
       dojo.style(square, 'background-position',
        this.tileStockIdToSpriteOffset(stockid));
       dojo.style(square, 'background-image',
@@ -296,7 +296,7 @@ function (dojo, declare) {
     },
 
     clearHighlightedSquares: function() {
-      dojo.query('.possibleMove').removeClass('possibleMove');
+      dojo.query('.uptown_possibleMove').removeClass('uptown_possibleMove');
     },
 
     highlightPossibleMoves: function(stockid) {
@@ -306,19 +306,19 @@ function (dojo, declare) {
       var squares = dojo.NodeList();
       var query;
       if (name == '$') {
-        query = '.square';
+        query = '.uptown_square';
       } else {
-        query = '.kind_' + name;
+        query = '.uptown_kind_' + name;
       }
       var cl;
-      var colorclass = 'color_' + this.myColor;
+      var colorclass = 'uptown_color_' + this.myColor;
       dojo.query(query).forEach(function(node) {
         cl = node.classList;
-        if (! (cl.contains('protected') || cl.contains(colorclass))) {
+        if (! (cl.contains('uptown_protected') || cl.contains(colorclass))) {
           squares.push(node);
         }
       });
-      squares.addClass('possibleMove');
+      squares.addClass('uptown_possibleMove');
     },
 
     ///////////////////////////////////////////////////
@@ -340,7 +340,7 @@ function (dojo, declare) {
       
       if (selected.length == 0 // No tile selected, so can't play one
        || ! this.checkAction(action, true) // Not your turn
-       || ! dojo.hasClass(evt.target, 'possibleMove')) { // The square clicked isn't a valid placement of this tile
+       || ! dojo.hasClass(evt.target, 'uptown_possibleMove')) { // The square clicked isn't a valid placement of this tile
         return;
       }
 
@@ -348,7 +348,7 @@ function (dojo, declare) {
       // notification from the server to do that
 
       var deckid = selected[0].id;
-      var location = evt.target.id.split('_', 2)[1];
+      var location = evt.target.id.split('_')[2];
       this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", {
        tile:deckid,
        location:location
@@ -416,13 +416,13 @@ function (dojo, declare) {
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(color, name);
       var location = notif.args.location;
-      var locationDOM = $('square_' + location);
+      var locationDOM = $('uptown_square_' + location);
 
       var typeclass = Array.from(locationDOM.classList)
-       .find(function(i){return i.startsWith('type_')});
+       .find(function(i){return i.startsWith('uptown_type_')});
       if (typeclass) {
         // There was already a tile here, so treat this as a capture
-        var captured_stockid = typeclass.split('_', 2)[1];
+        var captured_stockid = typeclass.split('_')[2];
         // Clear the existing tile
         dojo.removeClass(locationDOM, typeclass);
         // Add it to the correct player's capture area
@@ -446,9 +446,9 @@ function (dojo, declare) {
       }
 
       // Update protected squares
-      dojo.query('.protected').removeClass('protected');
+      dojo.query('.uptown_protected').removeClass('uptown_protected');
       for (var i in notif.args.protected) {
-        dojo.query('#square_' + notif.args.protected[i]).addClass('protected');
+        dojo.query('#uptown_square_' + notif.args.protected[i]).addClass('uptown_protected');
       }
     }
 

@@ -49,19 +49,19 @@
 /********* You can start writing your CSS below this line: **********/
 
 
-#board {
+#uptown_board {
    width: 670px;
    height: 671px;
    background-image: url('img/board.jpg');
 }
 
-#board .square {
+#uptown_board .uptown_square {
   width: 50px;
   height: 50px;
   position: absolute;
 }
 
-#board .possibleMove {
+#uptown_board .uptown_possibleMove {
   outline: .2rem red solid;
   cursor: pointer;
 }
@@ -109,10 +109,10 @@
   background-color: #ffff8b;
 }
 
-.cp_board {
+.uptown_cp_board {
     clear: both;
 }
 
-div.player_name {
+div.uptown_player_name {
   width: min-content;
 }
