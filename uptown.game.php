@@ -396,6 +396,8 @@ class Uptown extends Table {
     $deckid = intval($deckid);
     $tile = $this->tiles->getCard($deckid);
 
+    // These are all "unexpected" errors, so we won't bother translating
+    // them
     if ($tile['location'] !== 'hand' || $tile['location_arg'] !== $player_id) {
       throw new feException("You don't have that tile");
       return;
@@ -479,7 +481,7 @@ class Uptown extends Table {
     $type = $this->tiles->getCard($deckid)['type_arg'];
     $tile_name = $this->tile_values[$type];
 
-    $message = "${player_name} plays ${tile_name}";
+    $message = clienttranslate("${player_name} plays ${tile_name}");
 
     // For some reason this is always off by 1 here.  Maybe the moveCard
     // call above hasn't been fully committed yet or something?  We also
@@ -501,7 +503,7 @@ class Uptown extends Table {
     if ($captured) {
       $capture_target_name = $players[$capture_target]['player_name'];
       $captured_tile_name = $this->tile_values[$captured_tile];
-      $message .= ", capturing ${capture_target_name}'s ${captured_tile_name}";
+      $message = clienttranslate("${player_name} plays ${tile_name}, capturing ${capture_target_name}'s ${captured_tile_name}";
       $ret['i18n'][] = 'captured_tile_name';
     }
 
