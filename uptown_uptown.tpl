@@ -50,6 +50,10 @@ var jstpl_player_board = '\<div class="uptown_cp_board">\
    <span id="uptown_drawpilecount_p${id}" class="uptown_draw_tooltip">${deckcount}</span>\
 </div>';
 
+var jstpl_log_icon = '\<div \
+ class="uptown_log_icon" style="background-position: ${offset};">\
+</div>';
+
 </script>  
 
 

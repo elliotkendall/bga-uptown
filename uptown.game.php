@@ -477,11 +477,13 @@ class Uptown extends Table {
         self::setStat($total, 'maximum_groups_number');
     }
     // Notify all players about the tile played
-    $player_name = self::getActivePlayerName();
     $type = $this->tiles->getCard($deckid)['type_arg'];
-    $tile_name = $this->tile_values[$type];
 
-    $message = clienttranslate("${player_name} plays ${tile_name}");
+    // Note that the variables in this string are NOT interpreted
+    // by PHP! Despite the syntax, this is a single-quoted string
+    // so PHP will ignore the variables. They are later interpreted
+    // on the client side
+    $message = clienttranslate('${player_name} plays ${tile_name}');
 
     // For some reason this is always off by 1 here.  Maybe the moveCard
     // call above hasn't been fully committed yet or something?  We also
@@ -493,6 +495,8 @@ class Uptown extends Table {
     }
     $ret = array(
      'i18n' => array ('tile_name'),
+     'tile_name' => $this->tile_values[$type],
+     'player_name' => self::getActivePlayerName(),
      'player_id' => $player_id,
      'location' => $location,
      'tile_type' => $type,
@@ -501,9 +505,11 @@ class Uptown extends Table {
      'protected' => $this->findProtectedTiles($groups)
     );
     if ($captured) {
-      $capture_target_name = $players[$capture_target]['player_name'];
-      $captured_tile_name = $this->tile_values[$captured_tile];
-      $message = clienttranslate("${player_name} plays ${tile_name}, capturing ${capture_target_name}'s ${captured_tile_name}");
+      // See the above comment about $message
+      $message = clienttranslate('${player_name} plays ${tile_name}, capturing ${capture_target_name}\'s ${captured_tile_name}');
+      $ret['capture_target_name'] = $players[$capture_target]['player_name'];
+      $ret['capture_target_id'] = $capture_target;
+      $ret['captured_tile_name'] = $this->tile_values[$captured_tile];
       $ret['i18n'][] = 'captured_tile_name';
     }
 

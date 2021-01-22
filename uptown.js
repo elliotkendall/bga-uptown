@@ -259,6 +259,35 @@ function (dojo, declare) {
     your javascript script.
     */
 
+    /*
+    Override this function to inject html into log items.  This is a
+    built-in BGA method.
+    */
+    format_string_recursive: function(log, args) {
+      try {
+        if (log && args && !args.processed) {
+          args.processed = true;
+          var tile_names_to_player_ids = {
+           "tile_name": "player_id",
+           "captured_tile_name": "capture_target_id"
+          };
+          for (const [tilename, playerid] of Object.entries(tile_names_to_player_ids)) {
+            if (tilename in args) {
+              console.log('Inserting log graphic');
+              var color = this.colorsByPlayerId[args[playerid]];
+              var stockid = this.getTileStockId(color, args[tilename]);
+              args[tilename] = this.format_block('jstpl_log_icon', {
+                "offset" : this.tileStockIdToSpriteOffset(stockid)
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error(log,args,"Exception thrown", e.stack);
+      }
+      return this.inherited(arguments);
+    },
+
     // Like scoreCtrl for the captured tiles count in the player panel
     incrementCaptureCount: function(player_id) {
       var span = dojo.query("#uptown_capturecount_p" + player_id);
