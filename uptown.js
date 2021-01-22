@@ -53,28 +53,30 @@ function (dojo, declare) {
     */
         
     setup: function(gamedatas) {
-      console.log(gamedatas);
+      if (!this.isSpectator) {
+        this.myColor = this.colorsByHex[gamedatas.players[gamedatas.my_player_id].color];
+        this.myId = gamedatas.my_player_id;
 
-      this.myColor = this.colorsByHex[gamedatas.players[gamedatas.my_player_id].color];
-      this.myId = gamedatas.my_player_id;
+        // Player hand
+        this.playerHand = new ebg.stock();
+        this.playerHand.create(this, $('uptown_player_hand_self'),
+         this.tilewidth, this.tileheight);
+        this.playerHand.setSelectionAppearance('class');
+        this.playerHand.extraClasses='uptown_player_hand_self_item';
+        dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
 
-      // Player hand
-      this.playerHand = new ebg.stock();
-      this.playerHand.create(this, $('uptown_player_hand_self'),
-       this.tilewidth, this.tileheight);
-      this.playerHand.setSelectionAppearance('class');
-      this.playerHand.extraClasses='uptown_player_hand_self_item';
-      dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
+        // Allow one item to be selected if it's our turn
+        if (this.checkAction('playTile', true)) {
+          this.playerHand.setSelectionMode(1);
+        } else {
+          this.playerHand.setSelectionMode(0);
+        }
 
-      // Allow one item to be selected if it's our turn
-      if (this.checkAction('playTile', true)) {
-        this.playerHand.setSelectionMode(1);
+        // tiles per row in the sprite image
+        this.playerHand.image_items_per_row = this.tiles.length;
       } else {
-        this.playerHand.setSelectionMode(0);
+        this.myId = 0;
       }
-
-      // tiles per row in the sprite image
-      this.playerHand.image_items_per_row = this.tiles.length;
 
       // Set up player areas
       this.colorsByPlayerId = {};
@@ -126,9 +128,11 @@ function (dojo, declare) {
           var tileName = this.tiles[j];
           // Build tile type id
           var stockid = this.getTileStockId(color, tileName);
-          // Add it to our hand
-          this.playerHand.addItemType(stockid, stockid,
-           g_gamethemeurl + 'img/tiles.png', stockid);
+          if (!this.isSpectator) {
+            // Add it to our hand
+            this.playerHand.addItemType(stockid, stockid,
+             g_gamethemeurl + 'img/tiles.png', stockid);
+          } 
           // Add it to capture areas
           for(var player_id in gamedatas.players) {
             this.captureAreas[player_id].addItemType(stockid, stockid,
@@ -149,13 +153,15 @@ function (dojo, declare) {
         }
       }
 
-      // Populate current player's hand of tiles
-      for (var deckid in gamedatas.hand) {
-        var tile = gamedatas.hand[deckid];
-        var typeid = tile.type_arg;
-        var name = this.tiles[typeid];
-        var stockid = this.getTileStockId(this.myColor, name);
-        this.playerHand.addToStockWithId(stockid, deckid);
+      if (!this.isSpectator) {
+        // Populate current player's hand of tiles
+        for (var deckid in gamedatas.hand) {
+          var tile = gamedatas.hand[deckid];
+          var typeid = tile.type_arg;
+          var name = this.tiles[typeid];
+          var stockid = this.getTileStockId(this.myColor, name);
+          this.playerHand.addToStockWithId(stockid, deckid);
+        }
       }
 
       // Display an error when controls are clicked out of turn
@@ -201,12 +207,13 @@ function (dojo, declare) {
     //  this moment.
     //
     onEnteringState: function(stateName, args) {
-      console.log('Entering state: ' + stateName);
       // Make hand tiles clickable if it's our turn
-      if (this.checkAction('playTile', true)) {
-        this.playerHand.setSelectionMode(1);
-      } else {
-        this.playerHand.setSelectionMode(0);
+      if (!this.isSpectator) {
+        if (this.checkAction('playTile', true)) {
+          this.playerHand.setSelectionMode(1);
+        } else {
+          this.playerHand.setSelectionMode(0);
+        }
       }
     },
 
@@ -217,7 +224,6 @@ function (dojo, declare) {
     // this moment.
     //
     onLeavingState: function(stateName) {
-      console.log( 'Leaving state: '+stateName );
 
       switch(stateName) {
         /* Example:
@@ -236,7 +242,6 @@ function (dojo, declare) {
     // the status bar).
     //        
     onUpdateActionButtons: function(stateName, args) {
-      console.log('onUpdateActionButtons: ' + stateName);
       if (this.isCurrentPlayerActive()) {
         switch(stateName) {
           /* Example:
@@ -273,7 +278,6 @@ function (dojo, declare) {
           };
           for (const [tilename, playerid] of Object.entries(tile_names_to_player_ids)) {
             if (tilename in args) {
-              console.log('Inserting log graphic');
               var color = this.colorsByPlayerId[args[playerid]];
               var stockid = this.getTileStockId(color, args[tilename]);
               args[tilename] = this.format_block('jstpl_log_icon', {
@@ -422,7 +426,6 @@ function (dojo, declare) {
     */
 
     setupNotifications: function() {
-      console.log( 'notifications subscriptions setup' );
       dojo.subscribe('drawTile', this, "notif_drawTile");
       dojo.subscribe('drawTileOther', this, "notif_drawTileOther");
       dojo.subscribe('playTile', this, "notif_playTile");
@@ -430,8 +433,6 @@ function (dojo, declare) {
 
     // We just drew a new tile
     notif_drawTile: function(notif) {
-      console.log("notif_drawTile");
-      console.log(notif);
       var typeid = notif.args.tile;
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(this.myColor, name);
@@ -448,8 +449,6 @@ function (dojo, declare) {
 
     // Someone just played a tile
     notif_playTile: function(notif) {
-      console.log("notif_playTile");
-      console.log(notif);
       var typeid = notif.args.tile_type;
       var player_id = notif.args.player_id;
       var color = this.colorsByPlayerId[player_id];
