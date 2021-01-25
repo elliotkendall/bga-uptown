@@ -394,6 +394,7 @@ function (dojo, declare) {
       var deckid = selected[0].id;
       var location = evt.target.id.split('_')[2];
       this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", {
+       lock:true,
        tile:deckid,
        location:location
       }, this, function(result) {});

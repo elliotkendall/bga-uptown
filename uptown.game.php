@@ -513,7 +513,7 @@ class Uptown extends Table {
       $ret['i18n'][] = 'captured_tile_name';
     }
 
-    self::notifyAllPlayers('playTile', clienttranslate($message), $ret);
+    self::notifyAllPlayers('playTile', $message, $ret);
 
     // Draw a new tile to replace it
     $newTile = $this->tiles->pickCard('deck_' . $player_id, $player_id);
