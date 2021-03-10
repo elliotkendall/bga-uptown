@@ -94,6 +94,7 @@ function (dojo, declare) {
           var target = $('uptown_player_captured_' + player_id);
           var hand = new ebg.stock();
           hand.create(this, $('uptown_player_hand_' + player_id), this.tilewidth, this.tileheight);
+          hand.extraClasses='uptown_player_hand_item';
           // Don't allow selection
           hand.setSelectionMode(0);
           hand.image_items_per_row = 1;
@@ -327,12 +328,13 @@ function (dojo, declare) {
     setBoardSquareTile: function(stockid, square, color) {
       // Remove any color or kind classes
       square.classList.forEach(function(cls) {
-        if (cls.startsWith('uptown_color_') || cls.startsWith('type_')) {
+        if (cls.startsWith('uptown_color_') || cls.startsWith('uptown_type_')) {
           dojo.removeClass(square, cls);
         }
       });
       dojo.addClass(square, 'uptown_color_' + color);
       dojo.addClass(square, 'uptown_type_' + stockid);
+      dojo.addClass(square, 'uptown_board_tile');
       dojo.style(square, 'background-position',
        this.tileStockIdToSpriteOffset(stockid));
       dojo.style(square, 'background-image',
