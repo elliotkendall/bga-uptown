@@ -50,6 +50,8 @@
 
 
 #uptown_board {
+   margin: auto;
+   position: relative;
    width: 670px;
    height: 671px;
    background-image: url('img/board.jpg');
