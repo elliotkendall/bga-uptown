@@ -23,8 +23,8 @@ function (dojo, declare) {
 
       this.colors = ['blue', 'green', 'orange', 'red', 'yellow'];
       this.colorsByHex = {
-        "c5f0f9": "blue",
-        "c8e6c8": "green",
+        "94bec6": "blue",
+        "9ab79a": "green",
         "f28c60": "orange",
         "f03f84": "red",
         "ffff8b": "yellow"
