@@ -124,7 +124,7 @@ div.uptown_log_icon {
   height: 50px;
   display: inline-block;
   vertical-align: middle;
-  background-image: url("img/tiles.png");
+  background-image: url("img/tiles.webp");
 }
 
 .uptown_player_hand_item, .uptown_player_hand_self_item, .uptown_board_tile, .uptown_log_icon {

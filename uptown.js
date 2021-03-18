@@ -132,12 +132,12 @@ function (dojo, declare) {
           if (!this.isSpectator) {
             // Add it to our hand
             this.playerHand.addItemType(stockid, stockid,
-             g_gamethemeurl + 'img/tiles.png', stockid);
+             g_gamethemeurl + 'img/tiles.webp', stockid);
           } 
           // Add it to capture areas
           for(var player_id in gamedatas.players) {
             this.captureAreas[player_id].addItemType(stockid, stockid,
-             g_gamethemeurl + 'img/tiles.png', stockid);
+             g_gamethemeurl + 'img/tiles.webp', stockid);
           }
         }
       }
@@ -210,7 +210,11 @@ function (dojo, declare) {
     onEnteringState: function(stateName, args) {
       // Make hand tiles clickable if it's our turn
       if (!this.isSpectator) {
-        if (this.checkAction('playTile', true)) {
+        // For some unknown reason checkAction() sometimes returns false
+        // here on the final turn of the game. Comparing active ID to
+        // our ID seems a sufficient workaround
+        if (this.checkAction('playTile', true)
+         || (stateName == "playerTurn" && args.active_player == this.myId)) {
           this.playerHand.setSelectionMode(1);
         } else {
           this.playerHand.setSelectionMode(0);
@@ -338,7 +342,7 @@ function (dojo, declare) {
       dojo.style(square, 'background-position',
        this.tileStockIdToSpriteOffset(stockid));
       dojo.style(square, 'background-image',
-       'url(' + g_gamethemeurl + 'img/tiles.png)');
+       'url(' + g_gamethemeurl + 'img/tiles.webp)');
     },
 
     clearHighlightedSquares: function() {
