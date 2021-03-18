@@ -462,7 +462,8 @@ function (dojo, declare) {
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(color, name);
       var location = notif.args.location;
-      var locationDOM = $('uptown_square_' + location);
+      var locationID = 'uptown_square_' + location;
+      var locationDOM = $(locationID);
 
       var typeclass = Array.from(locationDOM.classList)
        .find(function(i){return i.startsWith('uptown_type_')});
@@ -478,12 +479,35 @@ function (dojo, declare) {
       }
       if (player_id == this.myId) {
         this.clearHighlightedSquares();
-        this.playerHand.removeFromStock(stockid, locationDOM);
+
+        var selecteditems = this.playerHand.getSelectedItems();
+        var selecteditem = selecteditems[0];
+        var selectedid = selecteditem.id;
+        var divid = this.playerHand.getItemDivId(selectedid);
+
+        var animation_id = this.slideToObject(divid, locationID);
+        dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
+          console.log('Post animation running');
+          this.setBoardSquareTile(stockid, locationDOM, color);
+        }));
+        animation_id.play();
+        this.playerHand.removeFromStock(stockid);
       } else {
         var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
-        this.hands[player_id].removeFromStock(id, locationDOM);
+
+        var hand = this.hands[player_id].getAllItems();
+        var selecteditem = hand[0];
+        var selectedid = selecteditem.id;
+        var divid = this.hands[player_id].getItemDivId(selectedid);
+
+        var animation_id = this.slideToObject(divid, locationID);
+        dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
+          console.log('Post animation running');
+          this.setBoardSquareTile(stockid, locationDOM, color);
+        }));
+        animation_id.play();
+        this.hands[player_id].removeFromStock(id);
       }
-      this.setBoardSquareTile(stockid, locationDOM, color);
 
       this.setDeckCount(player_id, notif.args.deckcount);
       // Update player scores
