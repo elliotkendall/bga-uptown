@@ -502,7 +502,9 @@ class Uptown extends Table {
      'tile_type' => $type,
      'deckcount' => $deckcount,
      'groups' => $groups,
-     'protected' => $this->findProtectedTiles($groups)
+     'protected' => $this->findProtectedTiles($groups),
+     'capture_target_id' => NULL,
+     'preserve' => array(2 => 'capture_target_id')
     );
     if ($captured) {
       // See the above comment about $message
