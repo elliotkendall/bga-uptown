@@ -215,6 +215,9 @@ function (dojo, declare) {
         // our ID seems a sufficient workaround
         if (this.checkAction('playTile', true)
          || (stateName == "playerTurn" && args.active_player == this.myId)) {
+          if (this.getDeckCount(args.active_player) === "0") {
+            this.showMessage("This is your last turn!", "info");
+          }
           this.playerHand.setSelectionMode(1);
         } else {
           this.playerHand.setSelectionMode(0);
@@ -307,6 +310,11 @@ function (dojo, declare) {
     setDeckCount: function(player_id, count) {
       var span = dojo.query("#uptown_drawpilecount_p" + player_id);
       span.text(count);
+    },
+
+    getDeckCount: function(player_id) {
+      var span = dojo.query("#uptown_drawpilecount_p" + player_id);
+      return span.text();
     },
 
     // Get tile stock identifier based on its color and name
