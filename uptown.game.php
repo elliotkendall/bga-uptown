@@ -526,15 +526,12 @@ class Uptown extends Table {
        array (
         'tile' => $type,
         'id' => $newTile['id']));
-      // Notify everyone else
-      foreach (array_keys($players) as $thispid) {
-        if ($thispid == $player_id) {
-          continue;
-        }
-        self::notifyPlayer($thispid, 'drawTileOther', '',
+
+      // Notify everyone else.  This will also notify the player who drew
+      // it, but that's unavoidable if we want to notify spectators
+      self::notifyAllPlayers('drawTileOther', '',
          array (
           'who' => $player_id));
-      }
     }
     
     $this->gamestate->nextState('playTile');

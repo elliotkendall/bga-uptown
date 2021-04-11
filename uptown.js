@@ -458,6 +458,10 @@ function (dojo, declare) {
     // Someone else just drew a new tile
     notif_drawTileOther: function(notif) {
       var player_id = notif.args.who;
+      // If we're the one who drew a tile, we don't need to do anything
+      if (player_id === this.myId) {
+        return;
+      }
       var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
       this.hands[player_id].addToStock(id);
     },
