@@ -452,7 +452,8 @@ function (dojo, declare) {
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(this.myColor, name);
       var deckid = notif.args.id;
-      this.playerHand.addToStockWithId(stockid, deckid);
+      var src = "uptown_drawpilecount_p" + this.myId;
+      this.playerHand.addToStockWithId(stockid, deckid, src);
     },
 
     // Someone else just drew a new tile
@@ -463,7 +464,8 @@ function (dojo, declare) {
         return;
       }
       var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
-      this.hands[player_id].addToStock(id);
+      var src = "uptown_drawpilecount_p" + player_id;
+      this.hands[player_id].addToStock(id, src);
     },
 
     // Someone just played a tile
@@ -499,7 +501,6 @@ function (dojo, declare) {
 
         var animation_id = this.slideToObject(divid, locationID);
         dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
-          console.log('Post animation running');
           this.setBoardSquareTile(stockid, locationDOM, color);
         }));
         animation_id.play();
@@ -514,7 +515,6 @@ function (dojo, declare) {
 
         var animation_id = this.slideToObject(divid, locationID);
         dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
-          console.log('Post animation running');
           this.setBoardSquareTile(stockid, locationDOM, color);
         }));
         animation_id.play();
