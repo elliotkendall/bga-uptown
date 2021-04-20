@@ -494,16 +494,25 @@ function (dojo, declare) {
       if (player_id == this.myId) {
         this.clearHighlightedSquares();
 
-        var selecteditems = this.playerHand.getSelectedItems();
-        var selecteditem = selecteditems[0];
-        var selectedid = selecteditem.id;
-        var divid = this.playerHand.getItemDivId(selectedid);
+        var items = this.playerHand.getAllItems();
+        var itemid = -1;
+        for (const item of items) {
+          if (item.type === stockid) {
+            itemid = item.id;
+            break;
+          }
+        }
+        if (itemid === -1) {
+          console.log('Could not find item in hand for stock id ' + stockid);
+        } else {
+          var divid = this.playerHand.getItemDivId(itemid);
 
-        var animation_id = this.slideToObject(divid, locationID);
-        dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
-          this.setBoardSquareTile(stockid, locationDOM, color);
-        }));
-        animation_id.play();
+          var animation_id = this.slideToObject(divid, locationID);
+          dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
+            this.setBoardSquareTile(stockid, locationDOM, color);
+          }));
+          animation_id.play();
+        }
         this.playerHand.removeFromStock(stockid);
       } else {
         var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
