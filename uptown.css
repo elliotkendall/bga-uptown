@@ -127,6 +127,6 @@ div.uptown_log_icon {
   background-image: url("img/tiles.webp");
 }
 
-.uptown_player_hand_item, .uptown_player_hand_self_item, .uptown_board_tile, .uptown_log_icon {
+.uptown_player_hand_item, .uptown_player_hand_self_item, .uptown_board_tile,.uptown_log_icon, .uptown_captured_tile {
   filter: drop-shadow(2px 2px 2px black);
 }

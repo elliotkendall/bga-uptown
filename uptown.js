@@ -88,6 +88,7 @@ function (dojo, declare) {
         this.colorsByPlayerId[player_id] = this.colorsByHex[player.color];
         this.playerIdsByColor[this.colorsByHex[player.color]] = player_id;
         var ca = new ebg.stock();
+        ca.extraClasses='uptown_captured_tile';
         if (player_id == this.myId) {
           var target = $('uptown_player_captured_self');
         } else {
