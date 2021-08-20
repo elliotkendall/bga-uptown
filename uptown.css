@@ -131,3 +131,7 @@ div.uptown_log_icon {
   filter: drop-shadow(2px 2px 2px black);
   background-size: 2800% 500%;
 }
+
+div.roundedbox {
+  background-color: #ebd5bd;
+}
