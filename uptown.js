@@ -133,12 +133,12 @@ function (dojo, declare) {
           if (!this.isSpectator) {
             // Add it to our hand
             this.playerHand.addItemType(stockid, stockid,
-             g_gamethemeurl + 'img/tiles.webp', stockid);
+             g_gamethemeurl + 'img/tiles.png', stockid);
           } 
           // Add it to capture areas
           for(var player_id in gamedatas.players) {
             this.captureAreas[player_id].addItemType(stockid, stockid,
-             g_gamethemeurl + 'img/tiles.webp', stockid);
+             g_gamethemeurl + 'img/tiles.png', stockid);
           }
         }
       }
@@ -355,7 +355,7 @@ function (dojo, declare) {
       dojo.style(square, 'background-position',
        this.tileStockIdToSpriteOffset(stockid));
       dojo.style(square, 'background-image',
-       'url(' + g_gamethemeurl + 'img/tiles.webp)');
+       'url(' + g_gamethemeurl + 'img/tiles.png)');
     },
 
     clearHighlightedSquares: function() {
