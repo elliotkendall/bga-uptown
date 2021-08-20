@@ -214,13 +214,17 @@ function (dojo, declare) {
         // For some unknown reason checkAction() sometimes returns false
         // here on the final turn of the game. Comparing active ID to
         // our ID seems a sufficient workaround
+        var lastturn = dojo.query("#uptown_last_turn");
         if (this.checkAction('playTile', true)
          || (stateName == "playerTurn" && args.active_player == this.myId)) {
-          if (this.getDeckCount(args.active_player) === "0") {
-            this.showMessage("This is your last turn!", "info");
+          if (this.getDeckCount(args.active_player) === "0" && this.playerHand.count() == 5) {
+            lastturn.text("This is your last turn!");
+          } else {
+            lastturn.text("");
           }
           this.playerHand.setSelectionMode(1);
         } else {
+          lastturn.text("");
           this.playerHand.setSelectionMode(0);
         }
       }

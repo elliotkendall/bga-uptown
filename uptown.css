@@ -135,3 +135,9 @@ div.uptown_log_icon {
 div.roundedbox {
   background-color: #ebd5bd;
 }
+
+div#uptown_last_turn {
+  color: red;
+  font-weight: bold;
+  padding-bottom: 0.7%;
+}
