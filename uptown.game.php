@@ -17,11 +17,14 @@
   */
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
+// Local constants
+define("SCORING_UPTOWN", 1);
+define("SCORING_BLOCKERS", 2);
+
 class Uptown extends Table {
   function __construct() {
     parent::__construct();
-    // This is evidently necessary even if we're not using any globals
-    self::initGameStateLabels(array());        
+    self::initGameStateLabels(array("scoring_rules" => 100));
 
     $this->tiles = self::getNew("module.common.deck");
     $this->tiles->init("tile");
@@ -420,8 +423,47 @@ class Uptown extends Table {
     $captured = FALSE;
     $captured_tile = NULL;
     $capture_target = NULL;
+
+    // We have to do this before we count captured pieces
     foreach ($existing as $id => $tile) {
       $this->tiles->moveCard($id, 'captured', $player_id);
+
+      // There should only ever be one existing tile in a location
+      break;
+    }
+
+    // For each player, find the opponent they've captured the most and
+    // fewest tiles from. We need this for Blockers! scoring or to update
+    // stats if we captured a tile
+    if (self::getGameStateValue('scoring_rules') == SCORING_BLOCKERS
+     || count($existing) > 0) {
+      $statsByPlayer = array();
+      foreach (array_keys($players) as $thispid) {
+        $captureCounts = array();
+        foreach (array_keys($players) as $oppid) {
+          $captureCounts[$oppid] = 0;
+        }
+        foreach ($this->tiles->getCardsInLocation('captured', $thispid)
+         as $id => $card) {
+          $player = $card['type'];
+          $captureCounts[$player]++;
+        }
+        $statsByPlayer[$thispid]['max'] = 0;
+        $statsByPlayer[$thispid]['min'] = 99;
+        foreach ($captureCounts as $player => $count) {
+          if ($count > $statsByPlayer[$thispid]['max']) {
+            $statsByPlayer[$thispid]['max'] = $count;
+          }
+          if ($count < $statsByPlayer[$thispid]['min']) {
+            $statsByPlayer[$thispid]['min'] = $count;
+          }
+        }
+      }
+    }
+
+    // This loop will run 0 or 1 times depending on whether or not there was
+    // already a tile at the location we played
+    foreach ($existing as $id => $tile) {
       $capture_target = $tile['type'];
       $captured_tile = $tile['type_arg'];
       $captured = TRUE;
@@ -429,32 +471,9 @@ class Uptown extends Table {
       self::incStat(1, 'tiles_captured');
       self::incStat(1, 'opponents_tiles_captured_count', $player_id);
       self::incStat(1, 'tiles_captured_by_opponents_count', $capture_target);
+      self::setStat($statsByPlayer[$player_id]['max'], 'max_captured_from_one_opponent', $player_id);
+      self::setStat($statsByPlayer[$player_id]['min'], 'min_captured_from_one_opponent', $player_id);
 
-      // Find the opponent we've captured the most and fewest tiles from
-      $captureCounts = array();
-      foreach (array_keys($players) as $thispid) {
-        $captureCounts[$thispid] = 0;
-      }
-      foreach ($this->tiles->getCardsInLocation('captured', $player_id)
-       as $id => $card) {
-        $player = $card['type'];
-        $captureCounts[$player]++;
-      }
-      $max = 0;
-      $min = 99;
-      foreach ($captureCounts as $player => $count) {
-        if ($count > $max) {
-          $max = $count;
-        }
-        if ($count < $min) {
-          $min = $count;
-        }
-      }
-      self::setStat($max, 'max_captured_from_one_opponent', $player_id);
-      self::setStat($min, 'min_captured_from_one_opponent', $player_id);
-
-      // There should only ever be one tile in a location
-      break;
     }
         
     // Put the tile on the board
@@ -463,9 +482,23 @@ class Uptown extends Table {
     // Recalculate tile groups and set scores and stats accordingly
     $groups = $this->findGroups();
     $total = 0;
-    foreach ($groups as $gpid => $pgroups) {
+    $newscores = array();
+    // We can't just loop over $groups directly since we want to update all
+    // player scores, even people with no groups
+    foreach (array_keys($players) as $gpid) {
+      if (isset($groups[$gpid])) {
+        $pgroups = $groups[$gpid];
+      } else {
+        $pgroups = array();
+      }
       $count = count($pgroups);
-      $this->dbSetScore($gpid, -1 * $count);
+      if (self::getGameStateValue('scoring_rules') == SCORING_UPTOWN) {
+        $newscore = $count;
+      } else if (self::getGameStateValue('scoring_rules') == SCORING_BLOCKERS) {
+        $newscore = $count + $statsByPlayer[$gpid]['max'];
+      }
+      $this->dbSetScore($gpid, -1 * $newscore);
+      $newscores[$gpid] = -1 * $newscore;
       self::setStat($count, 'final_groups_number', $gpid);
       if ($count > self::getStat('maximum_groups_number', $gpid)) {
         self::setStat($count, 'maximum_groups_number', $gpid);
@@ -503,6 +536,7 @@ class Uptown extends Table {
      'deckcount' => $deckcount,
      'groups' => $groups,
      'protected' => $this->findProtectedTiles($groups),
+     'scores' => $newscores,
      'capture_target_id' => NULL,
      'preserve' => array(2 => 'capture_target_id')
     );

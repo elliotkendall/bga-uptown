@@ -537,8 +537,8 @@ function (dojo, declare) {
 
       this.setDeckCount(player_id, notif.args.deckcount);
       // Update player scores
-      for (var gpid in notif.args.groups) {
-        this.scoreCtrl[gpid].setValue(-1 * notif.args.groups[gpid].length);
+      for (var gpid in notif.args.scores) {
+        this.scoreCtrl[gpid].setValue(notif.args.scores[gpid]);
       }
 
       // Update protected squares
