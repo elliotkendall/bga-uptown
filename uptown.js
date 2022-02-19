@@ -29,6 +29,13 @@ function (dojo, declare) {
         "f03f84": "red",
         "ffff8b": "yellow"
       };
+      this.hexByColor = {
+        "blue": "94bec6",
+        "green": "9ab79a",
+        "orange": "f28c60",
+        "red": "f03f84",
+        "yellow": "ffff8b"
+      };
       this.tiles = [
        '1', '2', '3', '4', '5', '6', '7', '8', '9',
        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
@@ -55,6 +62,10 @@ function (dojo, declare) {
     setup: function(gamedatas) {
       if (!this.isSpectator) {
         this.myColor = this.colorsByHex[gamedatas.players[gamedatas.my_player_id].color];
+        if (Object.keys(gamedatas.players).length == 2) {
+          this.secondColors = this.getSecondColors(gamedatas.players);
+          this.myAltColor = this.secondColors[gamedatas.my_player_id];
+        }
         this.myId = gamedatas.my_player_id;
 
         // Player hand
@@ -106,6 +117,14 @@ function (dojo, declare) {
           for(var i=0;i<player.handcount;i++) {
             hand.addToStock(id);
           }
+          if (Object.keys(gamedatas.players).length == 2) {
+            var altid = this.colors.indexOf(this.secondColors[player_id])
+            hand.addItemType(altid, altid,
+             g_gamethemeurl + 'img/colors.png', altid);
+            for(var i=0;i<player.handcount_alt;i++) {
+              hand.addToStock(altid);
+            }
+          }
           this.hands[player_id] = hand;
         }
         ca.create(this, target, this.tilewidth, this.tileheight);
@@ -118,7 +137,12 @@ function (dojo, declare) {
         // Capture count in the player panel
         var player_board_div = $('player_board_'+player_id);
         player.capturecount = Object.keys(player.captured).length;
-        dojo.place( this.format_block('jstpl_player_board', player ), player_board_div);
+        if ('secondColors' in this) {
+          player.color2 = this.hexByColor[this.secondColors[player_id]];
+          dojo.place( this.format_block('jstpl_player_board_2p', player ), player_board_div);
+        } else {
+          dojo.place( this.format_block('jstpl_player_board', player ), player_board_div);
+        }
         this.addTooltipToClass("uptown_capture_tooltip", _("Number of opponents' tiles captured"), '');
         this.addTooltipToClass("uptown_draw_tooltip", _("Number of tiles left to draw"), '');
       }
@@ -149,7 +173,12 @@ function (dojo, declare) {
         for(deckid in player.captured) {
           var tile = player.captured[deckid];
           var name = this.tiles[tile.type_arg];
-          var color = this.colorsByPlayerId[tile.type];
+          if (tile.type.endsWith("_alt")) {
+            var altPlayer = tile.type.substring(0, tile.type.length - 4);
+            var color = this.secondColors[altPlayer];
+          } else {
+            var color = this.colorsByPlayerId[tile.type];
+          }
           var stockid = this.getTileStockId(color, name);
           this.captureAreas[player_id].addToStockWithId(stockid, deckid);
         }
@@ -163,6 +192,15 @@ function (dojo, declare) {
           var name = this.tiles[typeid];
           var stockid = this.getTileStockId(this.myColor, name);
           this.playerHand.addToStockWithId(stockid, deckid);
+        }
+        if (Object.keys(gamedatas.players).length == 2) {
+          for (var deckid in gamedatas.hand_alt) {
+            var tile = gamedatas.hand_alt[deckid];
+            var typeid = tile.type_arg;
+            var name = this.tiles[typeid];
+            var stockid = this.getTileStockId(this.myAltColor, name);
+            this.playerHand.addToStockWithId(stockid, deckid);
+          }
         }
       }
 
@@ -178,7 +216,12 @@ function (dojo, declare) {
       for (var deckid in gamedatas.board) {
         var boardTile = gamedatas.board[deckid];
         var location = boardTile.location_arg;
-        var color = this.colorsByHex[gamedatas.players[boardTile.type].color];
+        if (boardTile.type.endsWith("_alt")) {
+          var altPlayer = boardTile.type.substring(0, boardTile.type.length - 4);
+          var color = this.secondColors[altPlayer];
+        } else {
+          var color = this.colorsByHex[gamedatas.players[boardTile.type].color];
+        }
         var name = this.tiles[boardTile.type_arg];
 
         var stockid = this.getTileStockId(
@@ -217,11 +260,17 @@ function (dojo, declare) {
         var lastturn = dojo.query("#uptown_last_turn");
         if (this.checkAction('playTile', true)
          || (stateName == "playerTurn" && args.active_player == this.myId)) {
-          if (this.getDeckCount(args.active_player) === "0" && this.playerHand.count() == 5) {
+          if (('secondColors' in this
+           && this.getDeckCount(args.active_player) === "0"
+           && this.getDeckCountAlt(args.active_player) === "0"
+           && this.playerHand.count() == 9)
+           || (this.getDeckCount(args.active_player) === "0"
+           && this.playerHand.count() == 5)) {
             lastturn.text("This is your last turn!");
           } else {
             lastturn.text("");
           }
+
           this.playerHand.setSelectionMode(1);
         } else {
           lastturn.text("");
@@ -277,6 +326,25 @@ function (dojo, declare) {
     your javascript script.
     */
 
+    getSecondColors(players) {
+      var usedColors = [];
+      for(var player_id in players) {
+        usedColors.push(this.colorsByHex[players[player_id].color]);
+      }
+      var availableColors = [];
+      for(var color of this.colors) {
+        if (usedColors.includes(color)) {
+          continue;
+        }
+        availableColors.push(color);
+      }
+      var secondColors = {};
+      for(var player_id in players) {
+        secondColors[player_id] = availableColors.shift();
+      }
+      return secondColors;
+    },
+
     /*
     Override this function to inject html into log items.  This is a
     built-in BGA method.
@@ -285,13 +353,19 @@ function (dojo, declare) {
       try {
         if (log && args && !args.processed) {
           args.processed = true;
-          var tile_names_to_player_ids = {
-           "tile_name": "player_id",
-           "captured_tile_name": "capture_target_id"
+          var tile_names_to_player_ids_and_hands = {
+           "tile_name": ["player_id", "which_hand"],
+           "captured_tile_name": ["capture_target_id", "capture_which_hand"]
           };
-          for (const [tilename, playerid] of Object.entries(tile_names_to_player_ids)) {
+          for (const [tilename, player_id_and_hand] of Object.entries(tile_names_to_player_ids_and_hands)) {
+            var playerid = player_id_and_hand[0];
+            var which_hand = player_id_and_hand[1];
             if (tilename in args) {
-              var color = this.colorsByPlayerId[args[playerid]];
+              if (args[which_hand] == "hand_alt") {
+                var color = this.secondColors[args[playerid]];
+              } else {
+                var color = this.colorsByPlayerId[args[playerid]];
+              }
               var stockid = this.getTileStockId(color, args[tilename]);
               args[tilename] = this.format_block('jstpl_log_icon', {
                 "offset" : this.tileStockIdToSpriteOffset(stockid)
@@ -316,9 +390,18 @@ function (dojo, declare) {
       var span = dojo.query("#uptown_drawpilecount_p" + player_id);
       span.text(count);
     },
+    setDeckCountAlt: function(player_id, count) {
+      var span = dojo.query("#uptown_drawpilecount_alt_p" + player_id);
+      span.text(count);
+    },
 
     getDeckCount: function(player_id) {
       var span = dojo.query("#uptown_drawpilecount_p" + player_id);
+      return span.text();
+    },
+
+    getDeckCountAlt: function(player_id) {
+      var span = dojo.query("#uptown_drawpilecount_alt_p" + player_id);
       return span.text();
     },
 
@@ -362,6 +445,19 @@ function (dojo, declare) {
       dojo.query('.uptown_possibleMove').removeClass('uptown_possibleMove');
     },
 
+    getHandColorCounts(items) {
+      var ret = {};
+      for (var i=0;i<items.length;i++) {
+        var colorAndType = this.tileStockIdToColorAndType(items[i].type);
+        if (colorAndType[0] in ret) {
+          ret[colorAndType[0]]++;
+        } else {
+          ret[colorAndType[0]] = 1;
+        }
+      }
+      return ret;
+    },
+
     highlightPossibleMoves: function(stockid) {
       var colorAndType = this.tileStockIdToColorAndType(stockid);
       var type = colorAndType[1];
@@ -375,9 +471,17 @@ function (dojo, declare) {
       }
       var cl;
       var colorclass = 'uptown_color_' + this.myColor;
+      if (this.myAltColor !== undefined) {
+        var altcolorclass = 'uptown_color_' + this.myAltColor;
+      } else {
+        // This is easier than modifying the loop below to check
+        // for player count
+        var altcolorclass = colorclass;
+      }
       dojo.query(query).forEach(function(node) {
         cl = node.classList;
-        if (! (cl.contains('uptown_protected') || cl.contains(colorclass))) {
+        if (! (cl.contains('uptown_protected')
+         || cl.contains(colorclass) || cl.contains(altcolorclass))) {
           squares.push(node);
         }
       });
@@ -407,6 +511,18 @@ function (dojo, declare) {
         return;
       }
 
+      var items = this.playerHand.getAllItems();
+      if (items.length < 10) {
+        console.log("Checking for play beyond last 4 tiles");
+        var selectedColor = this.tileStockIdToColorAndType(selected[0].type);
+        var selectedColor = selectedColor[0];
+        var colorCounts = this.getHandColorCounts(items);
+        if (colorCounts[selectedColor] == 4) {
+          this.showMessage("You have already played all but four tiles of that color", "error");
+          return;
+        }
+      }
+      
       // Don't actually move anything around. We'll wait for the
       // notification from the server to do that
 
@@ -455,8 +571,14 @@ function (dojo, declare) {
     notif_drawTile: function(notif) {
       var typeid = notif.args.tile;
       var name = this.tiles[typeid];
-      var stockid = this.getTileStockId(this.myColor, name);
+      if (notif.args.which_hand == 'hand_alt') {
+        var stockid = this.getTileStockId(this.myAltColor, name);
+      } else {
+        var stockid = this.getTileStockId(this.myColor, name);
+      }
       var deckid = notif.args.id;
+      // We could source this from the alt draw pile when appropriate,
+      // but they're right next to each other, so eh
       var src = "uptown_drawpilecount_p" + this.myId;
       this.playerHand.addToStockWithId(stockid, deckid, src);
     },
@@ -468,7 +590,13 @@ function (dojo, declare) {
       if (player_id === this.myId) {
         return;
       }
-      var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
+      if (notif.args.which_hand == 'hand_alt') {
+        var id = this.colors.indexOf(this.secondColors[player_id])
+      } else {
+        var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
+      }
+      // We could source this from the alt draw pile when appropriate,
+      // but they're right next to each other, so eh
       var src = "uptown_drawpilecount_p" + player_id;
       this.hands[player_id].addToStock(id, src);
     },
@@ -477,7 +605,11 @@ function (dojo, declare) {
     notif_playTile: function(notif) {
       var typeid = notif.args.tile_type;
       var player_id = notif.args.player_id;
-      var color = this.colorsByPlayerId[player_id];
+      if (notif.args.which_hand == "hand_alt") {
+        var color = this.secondColors[player_id];
+      } else {
+        var color = this.colorsByPlayerId[player_id];
+      }
       var name = this.tiles[typeid];
       var stockid = this.getTileStockId(color, name);
       var location = notif.args.location;
@@ -520,8 +652,11 @@ function (dojo, declare) {
         }
         this.playerHand.removeFromStock(stockid);
       } else {
-        var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
-
+        if (notif.args.which_hand == "hand_alt") {
+          var id = this.colors.indexOf(this.secondColors[player_id])
+        } else {
+          var id = this.colors.indexOf(this.colorsByPlayerId[player_id])
+        }
         var hand = this.hands[player_id].getAllItems();
         var selecteditem = hand[0];
         var selectedid = selecteditem.id;
@@ -535,7 +670,12 @@ function (dojo, declare) {
         this.hands[player_id].removeFromStock(id);
       }
 
+      console.log(notif.args);
       this.setDeckCount(player_id, notif.args.deckcount);
+      if ('deckcount_alt' in notif.args) {
+        console.log("Setting alt deck count");
+        this.setDeckCountAlt(player_id, notif.args.deckcount_alt);
+      }
       // Update player scores
       for (var gpid in notif.args.scores) {
         this.scoreCtrl[gpid].setValue(notif.args.scores[gpid]);

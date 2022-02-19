@@ -87,6 +87,25 @@ class Uptown extends Table {
       // Draw a hand of tiles
       $this->tiles->pickCards(5, 'deck_' . $player_id, $player_id);
 
+      if (count($players) == 2) {
+        // Create a new tiles array with _alt player_id
+        $tiles = array();
+        foreach ($this->tile_values as $type => $name) {
+          $tiles[] = array(
+           'type' => $player_id . '_alt',
+           'type_arg' => $type,
+           'nbr' => 1);
+        }
+
+        // Create the second deck
+        $this->tiles->createCards($tiles, 'deck_alt_' . $player_id);
+        $this->tiles->shuffle('deck_alt_' . $player_id);
+
+        // Draw a hand of tiles
+        $this->tiles->pickCardsForLocation(5, 'deck_alt_' . $player_id,
+         'hand_alt', $player_id);
+      }
+      
     }
 
     // Activate first player (which is in general a good idea :) )
@@ -118,7 +137,8 @@ class Uptown extends Table {
     $sql = "SELECT player_id id, player_score score FROM player ";
 
     $result['players'] = array();
-    foreach(self::getCollectionFromDb($sql) as $player_id => $info) {
+    $players = self::getCollectionFromDb($sql);
+    foreach($players as $player_id => $info) {
       $result['players'][$player_id] = $info;
       $result['players'][$player_id]['captured'] =
        $this->tiles->getCardsInLocation('captured', $player_id);
@@ -126,9 +146,18 @@ class Uptown extends Table {
        count($this->tiles->getCardsInLocation('hand', $player_id));
       $result['players'][$player_id]['deckcount'] =
        count($this->tiles->getCardsInLocation('deck_' . $player_id));
+      if (count($players) == 2) {
+        $result['players'][$player_id]['handcount_alt'] =
+         count($this->tiles->getCardsInLocation('hand_alt', $player_id));
+        $result['players'][$player_id]['deckcount_alt'] =
+         count($this->tiles->getCardsInLocation('deck_alt_' . $player_id));
+      }
     }
 
     $result['hand'] = $this->tiles->getCardsInLocation('hand', $current_player_id);
+    if (count($players) == 2) {
+      $result['hand_alt'] = $this->tiles->getCardsInLocation('hand_alt', $current_player_id);
+    }
 
     $result['board'] = $this->tiles->getCardsInLocation('board');
 
@@ -157,7 +186,11 @@ class Uptown extends Table {
         $tilesInPlay += $this->tiles->countCardInLocation('deck_' . $player_id);
       }
       $numPlayers = count($players);
-      return round((1 - (($tilesInPlay - 4 * $numPlayers) / (24 * $numPlayers))) * 100);
+      if ($numPlayers == 2) {
+        return round((1 - (($tilesInPlay - 4 * $numPlayers) / (24 * $numPlayers))) * 100);
+      } else {
+        return round((1 - (($tilesInPlay - 4 * $numPlayers) / (48 * $numPlayers))) * 100);
+      }
     }
 
 
@@ -401,8 +434,17 @@ class Uptown extends Table {
 
     // These are all "unexpected" errors, so we won't bother translating
     // them
-    if ($tile['location'] !== 'hand' || $tile['location_arg'] !== $player_id) {
+    if (($tile['location'] !== 'hand' && $tile['location'] !== 'hand_alt')
+     || $tile['location_arg'] !== $player_id) {
       throw new feException("You don't have that tile");
+      return;
+    }
+
+    if (($tile['location'] == 'hand'
+     && count($this->tiles->getCardsInLocation('hand', $player_id)) < 5)
+     || ($tile['location'] == 'hand_alt'
+     && count($this->tiles->getCardsInLocation('hand_alt', $player_id)) < 5)) {
+      throw new feException("You have already played all but four tiles of that color");
       return;
     }
 
@@ -412,13 +454,19 @@ class Uptown extends Table {
     }
     
     $target = $this->tiles->getCardsInLocation('board', $location);
-    if (count($target) == 1 && array_shift($target)['type'] == $player_id) {
-      throw new feException("You can't capture your own tile");
+    if (count($target) == 1) {
+      $target_type = array_shift($target)['type'];
+      if ($target_type == $player_id || $target_type == $player_id . '_alt') {
+        throw new feException("You can't capture your own tile");
+      }
     }
 
     if (in_array($location, $this->findProtectedTiles($this->findGroups()))) {
       throw new feException("Capturing that tile would break up a group");
     }
+
+    // Either hand or hand_alt
+    $tile_location = $tile['location'];
 
     $captured = FALSE;
     $captured_tile = NULL;
@@ -446,6 +494,10 @@ class Uptown extends Table {
         foreach ($this->tiles->getCardsInLocation('captured', $thispid)
          as $id => $card) {
           $player = $card['type'];
+          if (substr($player, -4) == '_alt') {
+            // Count players and their alts together
+            $player = substr($player, 0, -4);
+          }
           $captureCounts[$player]++;
         }
         $statsByPlayer[$thispid]['max'] = 0;
@@ -464,15 +516,26 @@ class Uptown extends Table {
     // This loop will run 0 or 1 times depending on whether or not there was
     // already a tile at the location we played
     foreach ($existing as $id => $tile) {
-      $capture_target = $tile['type'];
+      if (substr($tile['type'], -4) == '_alt') {
+        $capture_target = substr($tile['type'], 0, -4);
+        $capture_hand = 'hand_alt';
+      } else {
+        $capture_target = $tile['type'];
+        $capture_hand = 'hand';
+      }
       $captured_tile = $tile['type_arg'];
       $captured = TRUE;
-      $this->dbIncAuxScore($player_id, -1);
+      if (substr($player_id, -4) == '_alt') {
+        $statplayerid = substr($player_id, 0, -4);
+      } else {
+        $statplayerid = $player_id;
+      }
+      $this->dbIncAuxScore($statplayerid, -1);
       self::incStat(1, 'tiles_captured');
-      self::incStat(1, 'opponents_tiles_captured_count', $player_id);
+      self::incStat(1, 'opponents_tiles_captured_count', $statplayerid);
       self::incStat(1, 'tiles_captured_by_opponents_count', $capture_target);
-      self::setStat($statsByPlayer[$player_id]['max'], 'max_captured_from_one_opponent', $player_id);
-      self::setStat($statsByPlayer[$player_id]['min'], 'min_captured_from_one_opponent', $player_id);
+      self::setStat($statsByPlayer[$statplayerid]['max'], 'max_captured_from_one_opponent', $player_id);
+      self::setStat($statsByPlayer[$statplayerid]['min'], 'min_captured_from_one_opponent', $player_id);
 
     }
         
@@ -485,26 +548,51 @@ class Uptown extends Table {
     $newscores = array();
     // We can't just loop over $groups directly since we want to update all
     // player scores, even people with no groups
-    foreach (array_keys($players) as $gpid) {
+    $toLoop = array_keys($players);
+    if (count($players) == 2) {
+      foreach(array_keys($players) as $base) {
+        $toLoop[] = $base . '_alt';
+      }
+    }
+    foreach ($toLoop as $gpid) {
       if (isset($groups[$gpid])) {
         $pgroups = $groups[$gpid];
       } else {
         $pgroups = array();
       }
       $count = count($pgroups);
-      if (self::getGameStateValue('scoring_rules') == SCORING_UPTOWN) {
-        $newscore = $count;
-      } else if (self::getGameStateValue('scoring_rules') == SCORING_BLOCKERS) {
+      if (self::getGameStateValue('scoring_rules') == SCORING_BLOCKERS) {
         $newscore = $count + $statsByPlayer[$gpid]['max'];
+      } else {
+        // Default to Uptown scoring for games without this value set, e.g. 
+        // from before we added the option
+        $newscore = $count;
       }
-      $this->dbSetScore($gpid, -1 * $newscore);
-      $newscores[$gpid] = -1 * $newscore;
-      self::setStat($count, 'final_groups_number', $gpid);
-      if ($count > self::getStat('maximum_groups_number', $gpid)) {
-        self::setStat($count, 'maximum_groups_number', $gpid);
-      }
+
+      $newscores[$gpid] = $newscore;
       $total += $count;
     }
+
+    $reportscores = array();
+    foreach(array_keys($players) as $gpid) {
+      // We don't need to do anything for the alt scores themselves
+      if (substr($gpid, -4) == '_alt') {
+        continue;
+      }
+      // If this player has an alt, combine the scores
+      if (isset($newscores[$gpid . '_alt'])) {
+        $newscores[$gpid] += $newscores[$gpid . '_alt'];
+      }
+
+      self::setStat($newscores[$gpid], 'final_groups_number', $gpid);
+      if ($newscores[$gpid] > self::getStat('maximum_groups_number', $gpid)) {
+        self::setStat($newscores[$gpid], 'maximum_groups_number', $gpid);
+      }
+
+      $reportscores[$gpid] = -1 * $newscores[$gpid];
+      $this->dbSetScore($gpid, $reportscores[$gpid]);
+    }
+
     self::setStat($total, 'final_groups_number');
     if ($total > self::getStat('maximum_groups_number')) {
         self::setStat($total, 'maximum_groups_number');
@@ -518,27 +606,31 @@ class Uptown extends Table {
     // on the client side
     $message = clienttranslate('${player_name} plays ${tile_name}');
 
-    // For some reason this is always off by 1 here.  Maybe the moveCard
-    // call above hasn't been fully committed yet or something?  We also
-    // can't just blindly subtract 1 or we'll end up with -1 at the end of
-    // the game
+    // We haven't yet drawn a tile to replace the one that was played, so
+    // this will be off by one
     $deckcount = count($this->tiles->getCardsInLocation('deck_' . $player_id));
-    if ($deckcount > 0) {
+    $deckcount_alt = count($this->tiles->getCardsInLocation('deck_alt_' . $player_id));
+    if ($tile_location == 'hand' && $deckcount > 0) {
       $deckcount--;
+    } else if ($tile_location == 'hand_alt' && $deckcount_alt > 0) {
+      $deckcount_alt--;
     }
+
     $ret = array(
      'i18n' => array ('tile_name'),
      'tile_name' => $this->tile_values[$type],
      'player_name' => self::getActivePlayerName(),
      'player_id' => $player_id,
+     'which_hand' => $tile_location,
      'location' => $location,
      'tile_type' => $type,
      'deckcount' => $deckcount,
+     'deckcount_alt' => $deckcount_alt,
      'groups' => $groups,
      'protected' => $this->findProtectedTiles($groups),
-     'scores' => $newscores,
+     'scores' => $reportscores,
      'capture_target_id' => NULL,
-     'preserve' => array(2 => 'capture_target_id')
+     'preserve' => array(2 => 'capture_target_id', 'which_hand', 'capture_which_hand')
     );
     if ($captured) {
       // See the above comment about $message
@@ -546,25 +638,32 @@ class Uptown extends Table {
       $ret['capture_target_name'] = $players[$capture_target]['player_name'];
       $ret['capture_target_id'] = $capture_target;
       $ret['captured_tile_name'] = $this->tile_values[$captured_tile];
+      $ret['capture_which_hand'] = $capture_hand;
       $ret['i18n'][] = 'captured_tile_name';
     }
 
     self::notifyAllPlayers('playTile', $message, $ret);
 
     // Draw a new tile to replace it
-    $newTile = $this->tiles->pickCard('deck_' . $player_id, $player_id);
+    if ($tile_location == 'hand') {
+      $newTile = $this->tiles->pickCard('deck_' . $player_id, $player_id);
+    } else {
+      $newTile = $this->tiles->pickCardForLocation('deck_alt_' . $player_id, 'hand_alt', $player_id);
+    }
     if ($newTile !== NULL) {
       // Notify the player who drew it
       $type = $newTile['type_arg'];
       self::notifyPlayer($player_id, 'drawTile', '',
        array (
         'tile' => $type,
+        'which_hand' => $tile_location,
         'id' => $newTile['id']));
 
       // Notify everyone else.  This will also notify the player who drew
       // it, but that's unavoidable if we want to notify spectators
       self::notifyAllPlayers('drawTileOther', '',
          array (
+          'which_hand' => $tile_location,
           'who' => $player_id));
     }
     
@@ -614,9 +713,23 @@ class Uptown extends Table {
     $players = self::loadPlayersBasicInfos();
     $gameover = TRUE;
     foreach (array_keys($players) as $player_id) {
-      if (! $this->isPlayerZombie($player_id) && $this->tiles->countCardInLocation('hand', $player_id) > 4) {
-        $gameover = FALSE;
-        break;
+      if ($this->isPlayerZombie($player_id)) {
+        continue;
+      }
+
+      $altcount = $this->tiles->countCardInLocation('hand_alt', $player_id);
+      if ($altcount > 0) {
+        // Two player game
+        if ($altcount + $this->tiles->countCardInLocation('hand', $player_id) > 8) {
+          $gameover = FALSE;
+          break;
+        }
+      } else {
+        // 3+ player game
+        if ($this->tiles->countCardInLocation('hand', $player_id) > 4) {
+          $gameover = FALSE;
+          break;
+        }
       }
     }
     if ($gameover) {

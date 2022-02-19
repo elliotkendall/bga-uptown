@@ -20,6 +20,7 @@
 
 <div id="uptown_mytiles_wrap" class="whiteblock">
   <h3>{MY_TILES}</h3>
+  <div id="uptown_last_turn"></div>
   <div class="uptown_player_hand" id="uptown_player_hand_self">
   </div>
   <div class="uptown_player_captured" id="uptown_player_captured_self"></div>
@@ -48,6 +49,18 @@ var jstpl_player_board = '\<div class="uptown_cp_board">\
     <div id="uptown_drawpileicon_p${id}"\
     class="uptown_draw_tooltip uptown_drawpileicon uptown_drawpileicon_${color}"></div>\
    <span id="uptown_drawpilecount_p${id}" class="uptown_draw_tooltip">${deckcount}</span>\
+</div>';
+
+var jstpl_player_board_2p = '\<div class="uptown_cp_board">\
+    <div id="uptown_captureicon_p${id}"\
+    class="uptown_capture_tooltip uptown_captureicon uptown_captureicon_${color}"></div>\
+   <span id="uptown_capturecount_p${id}" class="uptown_capture_tooltip">${capturecount}</span>\
+    <div id="uptown_drawpileicon_p${id}"\
+    class="uptown_draw_tooltip uptown_drawpileicon uptown_drawpileicon_${color}"></div>\
+   <span id="uptown_drawpilecount_p${id}" class="uptown_draw_tooltip">${deckcount}</span>\
+    <div id="uptown_drawpileicon_alt_p${id}"\
+    class="uptown_draw_tooltip uptown_drawpileicon uptown_drawpileicon_${color2}"></div>\
+   <span id="uptown_drawpilecount_alt_p${id}" class="uptown_draw_tooltip">${deckcount_alt}</span>\
 </div>';
 
 var jstpl_log_icon = '\<div \
