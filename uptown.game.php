@@ -98,11 +98,11 @@ class Uptown extends Table {
         }
 
         // Create the second deck
-        $this->tiles->createCards($tiles, 'deck_alt_' . $player_id);
-        $this->tiles->shuffle('deck_alt_' . $player_id);
+        $this->tiles->createCards($tiles, 'dckalt_' . $player_id);
+        $this->tiles->shuffle('dckalt_' . $player_id);
 
         // Draw a hand of tiles
-        $this->tiles->pickCardsForLocation(5, 'deck_alt_' . $player_id,
+        $this->tiles->pickCardsForLocation(5, 'dckalt_' . $player_id,
          'hand_alt', $player_id);
       }
       
@@ -150,7 +150,7 @@ class Uptown extends Table {
         $result['players'][$player_id]['handcount_alt'] =
          count($this->tiles->getCardsInLocation('hand_alt', $player_id));
         $result['players'][$player_id]['deckcount_alt'] =
-         count($this->tiles->getCardsInLocation('deck_alt_' . $player_id));
+         count($this->tiles->getCardsInLocation('dckalt_' . $player_id));
       }
     }
 
@@ -609,7 +609,7 @@ class Uptown extends Table {
     // We haven't yet drawn a tile to replace the one that was played, so
     // this will be off by one
     $deckcount = count($this->tiles->getCardsInLocation('deck_' . $player_id));
-    $deckcount_alt = count($this->tiles->getCardsInLocation('deck_alt_' . $player_id));
+    $deckcount_alt = count($this->tiles->getCardsInLocation('dckalt_' . $player_id));
     if ($tile_location == 'hand' && $deckcount > 0) {
       $deckcount--;
     } else if ($tile_location == 'hand_alt' && $deckcount_alt > 0) {
@@ -648,7 +648,7 @@ class Uptown extends Table {
     if ($tile_location == 'hand') {
       $newTile = $this->tiles->pickCard('deck_' . $player_id, $player_id);
     } else {
-      $newTile = $this->tiles->pickCardForLocation('deck_alt_' . $player_id, 'hand_alt', $player_id);
+      $newTile = $this->tiles->pickCardForLocation('dckalt_' . $player_id, 'hand_alt', $player_id);
     }
     if ($newTile !== NULL) {
       // Notify the player who drew it
