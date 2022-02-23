@@ -76,12 +76,8 @@ function (dojo, declare) {
         this.playerHand.extraClasses='uptown_player_hand_self_item';
         dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
 
-        // Allow one item to be selected if it's our turn
-        if (this.checkAction('playTile', true)) {
-          this.playerHand.setSelectionMode(1);
-        } else {
-          this.playerHand.setSelectionMode(0);
-        }
+        // Allow one item to be selected
+        this.playerHand.setSelectionMode(1);
 
         // tiles per row in the sprite image
         this.playerHand.image_items_per_row = this.tiles.length;
@@ -204,14 +200,6 @@ function (dojo, declare) {
         }
       }
 
-      // Display an error when controls are clicked out of turn
-      dojo.query('.uptown_player_hand_self_item, .uptown_square')
-       .connect('onclick', this, function(evt) {
-        if (! this.checkAction('playTile', true)) {
-          this.showMessage("It's not your turn", "error")
-        }
-      });
-
       // Fill in board squares
       for (var deckid in gamedatas.board) {
         var boardTile = gamedatas.board[deckid];
@@ -270,11 +258,8 @@ function (dojo, declare) {
           } else {
             lastturn.text("");
           }
-
-          this.playerHand.setSelectionMode(1);
         } else {
           lastturn.text("");
-          this.playerHand.setSelectionMode(0);
         }
       }
     },
@@ -505,9 +490,13 @@ function (dojo, declare) {
       var action = 'playTile';
       var selected = this.playerHand.getSelectedItems();
       
-      if (selected.length == 0 // No tile selected, so can't play one
-       || ! this.checkAction(action, true) // Not your turn
-       || ! dojo.hasClass(evt.target, 'uptown_possibleMove')) { // The square clicked isn't a valid placement of this tile
+      if (selected.length == 0 ||
+       ! dojo.hasClass(evt.target, 'uptown_possibleMove')) {
+        return;
+      }
+
+      if (! this.checkAction(action, true)) {
+        this.showMessage("It's not your turn", "error");
         return;
       }
 
