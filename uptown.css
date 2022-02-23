@@ -141,3 +141,7 @@ div#uptown_last_turn {
   font-weight: bold;
   padding-bottom: 0.7%;
 }
+
+.chatwindowlogs_zone .roundedbox.chatlog .roundedboxinner {
+  background-color: #f1e1cf;
+}
