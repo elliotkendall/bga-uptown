@@ -619,6 +619,7 @@ function (dojo, declare) {
       }
       if (player_id == this.myId) {
         this.clearHighlightedSquares();
+        this.playerHand.unselectAll();
 
         var items = this.playerHand.getAllItems();
         var itemid = -1;
@@ -633,13 +634,13 @@ function (dojo, declare) {
         } else {
           var divid = this.playerHand.getItemDivId(itemid);
 
-          var animation_id = this.slideToObject(divid, locationID);
+          var animation_id = this.slideToObject(divid, locationID, 1000, 100);
           dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
             this.setBoardSquareTile(stockid, locationDOM, color);
+            this.playerHand.removeFromStock(stockid);
           }));
           animation_id.play();
         }
-        this.playerHand.removeFromStock(stockid);
       } else {
         if (notif.args.which_hand == "hand_alt") {
           var id = this.colors.indexOf(this.secondColors[player_id])
@@ -651,12 +652,12 @@ function (dojo, declare) {
         var selectedid = selecteditem.id;
         var divid = this.hands[player_id].getItemDivId(selectedid);
 
-        var animation_id = this.slideToObject(divid, locationID);
+        var animation_id = this.slideToObject(divid, locationID, 1000, 100);
         dojo.connect(animation_id, 'onEnd', dojo.hitch(this, function() {
           this.setBoardSquareTile(stockid, locationDOM, color);
+          this.hands[player_id].removeFromStock(id);
         }));
         animation_id.play();
-        this.hands[player_id].removeFromStock(id);
       }
 
       console.log(notif.args);
